@@ -264,6 +264,9 @@
     box-shadow: 0 2px 20px rgba(0,0,0,0.10);
     position: relative;
     background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .flag-img-wrap img {
@@ -272,6 +275,12 @@
     object-fit: cover;
     display: block;
     transition: opacity 0.2s;
+  }
+
+  .flag-img-wrap img.flag-tall {
+    width: auto;
+    height: 90%;
+    object-fit: contain;
   }
 
   /* input area */
@@ -638,6 +647,7 @@
   </div>
 
   <div class="skip-row">
+    <button class="btn-secondary" onclick="revealFlag()">Reveal name 👁</button>
     <button class="btn-secondary" onclick="skipFlag()">Skip flag</button>
   </div>
 </div>
@@ -708,7 +718,7 @@ const FLAGS = [
   {code:"bh",name:"Bahrain",alt:[]},
   {code:"bd",name:"Bangladesh",alt:[]},
   {code:"bb",name:"Barbados",alt:[]},
-  {code:"by",name:"Belarus",alt:[]},
+  {code:"by",name:"Belarus",alt:["byelorussia","belorussia","byelarus","белоруссия"]},
   {code:"be",name:"Belgium",alt:["belgian"]},
   {code:"bz",name:"Belize",alt:[]},
   {code:"bj",name:"Benin",alt:[]},
@@ -977,27 +987,47 @@ function levenshtein(a, b) {
   return dp[m][n];
 }
 
+// Known single-token abbreviations that are always acceptable
+const ABBREVS = new Set(['usa','us','uk','uae','png','drc','car','ksa','rsa','roc','dprk','fsm','nz','eu']);
+
+function isAbbreviation(norm) {
+  // An abbreviation is all caps originally, or a known short form with no spaces
+  return !norm.includes(' ') && norm.length <= 4;
+}
+
 function checkAnswer(input, flag) {
   const norm = normalise(input);
   if (!norm) return 'empty';
 
   const targets = [flag.name, ...flag.alt].map(normalise);
 
-  // exact match
+  // exact match on name or known alt
   if (targets.includes(norm)) return 'correct';
 
-  // prefix match: only if typed at least 60% of the target AND starts from the beginning
+  // block multi-word abbreviations: if input has no spaces but target has spaces,
+  // only accept if it's in the known abbreviations list
+  const primaryNorm = normalise(flag.name);
+  const targetHasSpaces = primaryNorm.includes(' ');
+  if (targetHasSpaces && !norm.includes(' ') && !ABBREVS.has(norm)) {
+    // single word typed for a multi-word country — check alts first
+    const altMatch = flag.alt.map(normalise).includes(norm);
+    if (!altMatch) {
+      // not a known alt, not a known abbrev — treat as wrong, no close
+      return 'wrong';
+    }
+  }
+
+  // prefix match: typed at least 60% of target from the start
   for (const t of targets) {
     if (t.startsWith(norm) && norm.length >= Math.max(4, Math.ceil(t.length * 0.6))) return 'close';
   }
 
-  // fuzzy match: only fires when input length is within 2 chars of target
-  // and distance is at most 2 (typos/transpositions only, not wrong answers)
+  // fuzzy match: input length within 2 of target, max 2 edits (1 for short words)
   for (const t of targets) {
     const lenDiff = Math.abs(norm.length - t.length);
-    if (lenDiff > 2) continue; // input too short or too long to be a typo
+    if (lenDiff > 2) continue;
     const dist = levenshtein(norm, t);
-    const threshold = norm.length <= 5 ? 1 : 2; // short words: max 1 edit; longer: max 2
+    const threshold = norm.length <= 5 ? 1 : 2;
     if (dist <= threshold) return 'close';
   }
 
@@ -1062,6 +1092,7 @@ function startGame() {
   correctCount = 0;
   skippedCount = 0;
   closeCount = 0;
+  revealedCount = 0;
   splitTimes = [];
   elapsedMs = 0;
   inputLocked = false;
@@ -1090,6 +1121,12 @@ function showFlag() {
   const img = document.getElementById('flag-img');
   img.src = `https://flagcdn.com/w320/${flag.code}.png`;
   img.alt = 'Flag';
+  // Nepal (np) has a unique pennon shape — use contain so it doesn't get cropped
+  if (flag.code === 'np') {
+    img.className = 'flag-tall';
+  } else {
+    img.className = '';
+  }
 
   const input = document.getElementById('answer-input');
   input.value = '';
@@ -1114,44 +1151,43 @@ function showFlag() {
   setTimeout(() => input.focus(), 50);
 }
 
+let revealedCount = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('answer-input');
 
+  // typing: clear any stale feedback only, no new feedback shown
   input.addEventListener('input', () => {
     if (inputLocked) return;
-    const val = input.value;
-    const flag = shuffled[currentIndex];
-    if (!val) {
-      input.className = 'answer-input';
-      document.getElementById('feedback-label').textContent = '';
-      document.getElementById('feedback-label').className = 'feedback-label';
-      return;
-    }
-
-    const result = checkAnswer(val, flag);
-    if (result === 'correct') {
-      handleCorrect();
-    } else if (result === 'close') {
-      input.className = 'answer-input state-close';
-      const fb = document.getElementById('feedback-label');
-      fb.textContent = 'Almost… check your spelling';
-      fb.className = 'feedback-label close';
-      closeCount++;
-    } else {
-      input.className = 'answer-input';
-      document.getElementById('feedback-label').textContent = '';
-      document.getElementById('feedback-label').className = 'feedback-label';
-    }
+    input.classList.remove('state-wrong', 'state-close', 'state-correct', 'shake');
+    const fb = document.getElementById('feedback-label');
+    fb.textContent = '';
+    fb.className = 'feedback-label';
   });
 
+  // Enter: evaluate and show correct / close / wrong feedback
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !inputLocked) {
       const val = input.value;
+      if (!val.trim()) return;
       const flag = shuffled[currentIndex];
       const result = checkAnswer(val, flag);
       if (result === 'correct') {
         handleCorrect();
-      } else if (result !== 'empty') {
+      } else if (result === 'close') {
+        input.classList.remove('state-wrong', 'state-correct');
+        input.classList.add('state-close');
+        const fb = document.getElementById('feedback-label');
+        fb.textContent = 'Almost… check your spelling';
+        fb.className = 'feedback-label close';
+        closeCount++;
+        clearTimeout(feedbackTimeout);
+        feedbackTimeout = setTimeout(() => {
+          input.classList.remove('state-close');
+          fb.textContent = '';
+          fb.className = 'feedback-label';
+        }, 1200);
+      } else {
         triggerWrong();
       }
     }
@@ -1205,9 +1241,19 @@ function triggerWrong() {
 function skipFlag() {
   if (inputLocked) return;
   skippedCount++;
-  splitTimes.push({ code: shuffled[currentIndex].code, name: shuffled[currentIndex].name, ms: null });
+  splitTimes.push({ code: shuffled[currentIndex].code, name: shuffled[currentIndex].name, ms: null, revealed: false });
   currentIndex++;
   showFlag();
+}
+
+function revealFlag() {
+  if (inputLocked) return;
+  revealedCount++;
+  const flag = shuffled[currentIndex];
+  const fb = document.getElementById('feedback-label');
+  fb.textContent = '👁 ' + flag.name;
+  fb.className = 'feedback-label close';
+  // after reveal, player must still type it correctly — just now they know the answer
 }
 
 function confirmQuit() {
@@ -1246,6 +1292,7 @@ function endGame() {
     timeMs: totalMs,
     correct: correctCount,
     skipped: skippedCount,
+    revealed: revealedCount,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   });
   saveRecentRuns(runs.slice(0, 20));
@@ -1268,13 +1315,14 @@ function endGame() {
   if (recentRuns.length === 0) {
     runsEl.innerHTML = '<div class="lb-empty">No runs yet</div>';
   } else {
-    runsEl.innerHTML = recentRuns.slice(0, 8).map(r => `
-      <div class="run-row">
+    runsEl.innerHTML = recentRuns.slice(0, 8).map(r => {
+      const revealTag = r.revealed > 0 ? ` · ${r.revealed} revealed` : '';
+      return `<div class="run-row">
         <span class="run-date">${r.date}</span>
-        <span class="run-flags">${r.correct}/193 correct</span>
+        <span class="run-flags">${r.correct}/193 correct${revealTag}</span>
         <span class="run-time">${formatTimeMs(r.timeMs)}</span>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   showScreen('results');
