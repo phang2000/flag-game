@@ -257,31 +257,25 @@
 
   .flag-img-wrap {
     width: 100%;
-    max-width: 320px;
+    max-width: 360px;
     height: 200px;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 2px 20px rgba(0,0,0,0.10);
-    position: relative;
-    background: var(--surface2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: #fff;
   }
 
   .flag-img-wrap img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     display: block;
     transition: opacity 0.2s;
-    border-radius: 6px;
   }
 
   .flag-img-wrap img.flag-tall {
-    width: auto;
-    height: 90%;
     object-fit: contain;
+    background: #fff;
   }
 
   /* input area */
