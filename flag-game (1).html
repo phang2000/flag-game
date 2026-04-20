@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flag Rush</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: rgba(0,0,0,0.07);
+    --text: #1A1814;
+    --text2: #6B6760;
+    --text3: #A09C96;
+    --correct: #2D9E6B;
+    --correct-bg: #EAF7F1;
+    --wrong: #E24B4A;
+    --wrong-bg: #FEF0F0;
+    --close: #D4900A;
+    --close-bg: #FEF5E4;
+    --accent: #5B4FCF;
+    --accent-light: #EEEDFE;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 2px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; width: 100%; max-width: 560px; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ── HOME ── */
+  #home {
+    justify-content: center;
+    min-height: 100vh;
+    gap: 0;
+    padding: 2rem 0;
+  }
+
+  .logo {
+    font-family: 'Nunito', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    margin-bottom: 0.2rem;
+    text-align: center;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .tagline {
+    font-size: 0.95rem;
+    color: var(--text2);
+    text-align: center;
+    margin-bottom: 2.5rem;
+    font-weight: 500;
+  }
+
+  .home-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 2rem;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .home-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-pill {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 0.9rem 0.75rem;
+    text-align: center;
+  }
+
+  .stat-pill .num {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+    display: block;
+  }
+
+  .stat-pill .lbl {
+    font-size: 0.72rem;
+    color: var(--text3);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 4px;
+    display: block;
+  }
+
+  .username-wrap {
+    margin-bottom: 1.25rem;
+  }
+
+  .field-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 0.4rem;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .username-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface2);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .username-input:focus { border-color: var(--accent); background: white; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-primary:hover { background: #4A3FBF; box-shadow: 0 4px 20px rgba(91,79,207,0.3); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    padding: 0.65rem 1.2rem;
+    background: var(--surface);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-secondary:hover { background: var(--surface2); color: var(--text); }
+
+  /* ── GAME ── */
+  #game { gap: 1.25rem; padding-top: 1rem; }
+
+  .game-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 0.25rem;
+  }
+
+  .progress-wrap { flex: 1; margin: 0 1rem; }
+
+  .progress-text {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text3);
+    text-align: center;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .progress-bar {
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .timer-display {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text);
+    min-width: 70px;
+    text-align: right;
+    letter-spacing: -0.02em;
+  }
+
+  .quit-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1;
+  }
+
+  .quit-btn:hover { color: var(--wrong); background: var(--wrong-bg); }
+
+  /* flag card */
+  .flag-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    transition: transform 0.15s;
+  }
+
+  .flag-img-wrap {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 3/2;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.10);
+    position: relative;
+    background: var(--surface2);
+  }
+
+  .flag-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.2s;
+  }
+
+  /* input area */
+  .input-wrap { width: 100%; position: relative; }
+
+  .answer-input {
+    width: 100%;
+    padding: 0.85rem 1.1rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--surface2);
+    outline: none;
+    transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    text-align: center;
+    letter-spacing: 0.01em;
+  }
+
+  .answer-input:focus { background: white; border-color: var(--accent); }
+  .answer-input.state-correct { border-color: var(--correct); background: var(--correct-bg); color: var(--correct); }
+  .answer-input.state-wrong { border-color: var(--wrong); background: var(--wrong-bg); color: var(--wrong); }
+  .answer-input.state-close { border-color: var(--close); background: var(--close-bg); color: var(--close); }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+
+  .answer-input.shake { animation: shake 0.35s ease; }
+
+  .feedback-label {
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    min-height: 1.2rem;
+    transition: color 0.2s;
+  }
+
+  .feedback-label.correct { color: var(--correct); }
+  .feedback-label.wrong { color: var(--wrong); }
+  .feedback-label.close { color: var(--close); }
+
+  /* skip */
+  .skip-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  /* ── RESULTS ── */
+  #results { gap: 1.25rem; padding-top: 1.5rem; }
+
+  .results-header { text-align: center; }
+
+  .results-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+
+  .results-subtitle {
+    font-size: 0.9rem;
+    color: var(--text2);
+    font-weight: 500;
+  }
+
+  .final-time-card {
+    background: var(--accent);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(91,79,207,0.25);
+  }
+
+  .final-time-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 0.4rem;
+  }
+
+  .final-time-value {
+    font-family: 'Nunito', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .final-time-sub {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.65);
+    margin-top: 0.5rem;
+    font-weight: 500;
+  }
+
+  .results-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .results-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .results-stat .num {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .results-stat .lbl {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .results-stat.green .num { color: var(--correct); }
+  .results-stat.red .num { color: var(--wrong); }
+  .results-stat.amber .num { color: var(--close); }
+  .results-stat.purple .num { color: var(--accent); }
+
+  /* leaderboard */
+  .section-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text);
+    width: 100%;
+    margin-bottom: -0.25rem;
+    letter-spacing: -0.01em;
+  }
+
+  .leaderboard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1.25rem;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row.highlight { background: var(--accent-light); }
+
+  .lb-rank {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--text3);
+    min-width: 24px;
+    text-align: center;
+  }
+
+  .lb-rank.gold { color: #D4900A; }
+  .lb-rank.silver { color: #888; }
+  .lb-rank.bronze { color: #A0522D; }
+
+  .lb-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+
+  .lb-time {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
+  .lb-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text3);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  /* recent runs */
+  .run-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .run-row:last-child { border-bottom: none; }
+
+  .run-date {
+    font-size: 0.82rem;
+    color: var(--text3);
+    font-weight: 500;
+  }
+
+  .run-time {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .run-flags {
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-weight: 500;
+  }
+
+  .results-actions {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .results-actions .btn-primary { flex: 1; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 480px) {
+    .logo { font-size: 2rem; }
+    .flag-card { padding: 1.25rem; }
+    .flag-img-wrap { max-width: 260px; }
+    .final-time-value { font-size: 2.8rem; }
+    .home-stats { gap: 0.6rem; }
+  }
+
+  /* flag transition */
+  @keyframes flagIn {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .flag-card.entering { animation: flagIn 0.3s ease forwards; }
+
+  /* correct flash */
+  @keyframes correctFlash {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+
+  .flag-card.correct-flash { animation: correctFlash 0.3s ease; }
+
+  .badge-new-best {
+    background: var(--accent);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HOME ── -->
+<div id="home" class="screen active">
+  <div style="width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; gap:0; padding: 2rem 0;">
+    <div class="logo">Flag<span>Rush</span></div>
+    <div class="tagline">How fast can you name every UN flag?</div>
+
+    <div class="home-card">
+      <div class="home-stats">
+        <div class="stat-pill">
+          <span class="num">193</span>
+          <span class="lbl">Flags</span>
+        </div>
+        <div class="stat-pill">
+          <span class="num" id="home-best">—</span>
+          <span class="lbl">Your best</span>
+        </div>
+        <div class="stat-pill">
+          <span class="num" id="home-runs">0</span>
+          <span class="lbl">Runs</span>
+        </div>
+      </div>
+
+      <div class="username-wrap">
+        <span class="field-label">Your name</span>
+        <input class="username-input" id="username-input" type="text" placeholder="Enter a display name" maxlength="20" autocomplete="off" />
+      </div>
+
+      <button class="btn-primary" onclick="startGame()">Start game →</button>
+    </div>
+
+    <div id="home-leaderboard-section" style="width:100%;">
+      <p class="section-title" style="margin-bottom:0.6rem; padding: 0 0.1rem;">All-time leaderboard</p>
+      <div class="leaderboard" id="home-leaderboard">
+        <div class="lb-empty">No scores yet — be the first!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GAME ── -->
+<div id="game" class="screen">
+  <div class="game-topbar">
+    <button class="quit-btn" onclick="confirmQuit()" title="Quit">✕</button>
+    <div class="progress-wrap">
+      <div class="progress-text" id="progress-text">1 / 193</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="timer-display" id="timer-display">0:00</div>
+  </div>
+
+  <div class="flag-card" id="flag-card">
+    <div class="flag-img-wrap">
+      <img id="flag-img" src="" alt="Flag" />
+    </div>
+    <div class="input-wrap">
+      <input
+        class="answer-input"
+        id="answer-input"
+        type="text"
+        placeholder="Type country name…"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+      <div class="feedback-label" id="feedback-label"></div>
+    </div>
+  </div>
+
+  <div class="skip-row">
+    <button class="btn-secondary" onclick="skipFlag()">Skip flag</button>
+  </div>
+</div>
+
+<!-- ── RESULTS ── -->
+<div id="results" class="screen">
+  <div class="results-header">
+    <div class="results-title" id="results-title">Run complete!</div>
+    <div class="results-subtitle" id="results-subtitle"></div>
+  </div>
+
+  <div class="final-time-card">
+    <div class="final-time-label">Final time</div>
+    <div class="final-time-value" id="final-time">0:00</div>
+    <div class="final-time-sub" id="final-time-sub"></div>
+  </div>
+
+  <div class="results-stats-grid">
+    <div class="results-stat green">
+      <span class="num" id="stat-correct">0</span>
+      <span class="lbl">Correct</span>
+    </div>
+    <div class="results-stat red">
+      <span class="num" id="stat-skipped">0</span>
+      <span class="lbl">Skipped</span>
+    </div>
+    <div class="results-stat amber">
+      <span class="num" id="stat-close">0</span>
+      <span class="lbl">Close calls</span>
+    </div>
+    <div class="results-stat purple">
+      <span class="num" id="stat-avg">0s</span>
+      <span class="lbl">Avg per flag</span>
+    </div>
+  </div>
+
+  <div style="width:100%;">
+    <p class="section-title" style="margin-bottom:0.6rem;">All-time leaderboard</p>
+    <div class="leaderboard" id="results-leaderboard"></div>
+  </div>
+
+  <div style="width:100%;">
+    <p class="section-title" style="margin-bottom:0.6rem;">Your recent runs</p>
+    <div class="leaderboard" id="recent-runs"></div>
+  </div>
+
+  <div class="results-actions">
+    <button class="btn-secondary" onclick="showScreen('home')">Home</button>
+    <button class="btn-primary" onclick="startGame()">Play again →</button>
+  </div>
+</div>
+
+<script>
+// ── FLAGS DATA ──
+const FLAGS = [
+  {code:"af",name:"Afghanistan",alt:["afghan"]},
+  {code:"al",name:"Albania",alt:["albanian"]},
+  {code:"dz",name:"Algeria",alt:["algerian"]},
+  {code:"ad",name:"Andorra",alt:[]},
+  {code:"ao",name:"Angola",alt:[]},
+  {code:"ag",name:"Antigua and Barbuda",alt:["antigua","barbuda","antigua & barbuda"]},
+  {code:"ar",name:"Argentina",alt:["argentinian","argentinean"]},
+  {code:"am",name:"Armenia",alt:[]},
+  {code:"au",name:"Australia",alt:["australian"]},
+  {code:"at",name:"Austria",alt:["austrian"]},
+  {code:"az",name:"Azerbaijan",alt:[]},
+  {code:"bs",name:"Bahamas",alt:["the bahamas"]},
+  {code:"bh",name:"Bahrain",alt:[]},
+  {code:"bd",name:"Bangladesh",alt:[]},
+  {code:"bb",name:"Barbados",alt:[]},
+  {code:"by",name:"Belarus",alt:[]},
+  {code:"be",name:"Belgium",alt:["belgian"]},
+  {code:"bz",name:"Belize",alt:[]},
+  {code:"bj",name:"Benin",alt:[]},
+  {code:"bt",name:"Bhutan",alt:[]},
+  {code:"bo",name:"Bolivia",alt:[]},
+  {code:"ba",name:"Bosnia and Herzegovina",alt:["bosnia","herzegovina","bosnia & herzegovina","bosnia herzegowina"]},
+  {code:"bw",name:"Botswana",alt:[]},
+  {code:"br",name:"Brazil",alt:["brasil","brazilian"]},
+  {code:"bn",name:"Brunei",alt:["brunei darussalam"]},
+  {code:"bg",name:"Bulgaria",alt:[]},
+  {code:"bf",name:"Burkina Faso",alt:[]},
+  {code:"bi",name:"Burundi",alt:[]},
+  {code:"cv",name:"Cape Verde",alt:["cabo verde"]},
+  {code:"kh",name:"Cambodia",alt:[]},
+  {code:"cm",name:"Cameroon",alt:[]},
+  {code:"ca",name:"Canada",alt:["canadian"]},
+  {code:"cf",name:"Central African Republic",alt:["car","central africa"]},
+  {code:"td",name:"Chad",alt:[]},
+  {code:"cl",name:"Chile",alt:["chilean"]},
+  {code:"cn",name:"China",alt:["chinese","peoples republic of china","prc"]},
+  {code:"co",name:"Colombia",alt:["columbia","colombian"]},
+  {code:"km",name:"Comoros",alt:[]},
+  {code:"cd",name:"Democratic Republic of the Congo",alt:["dr congo","drc","congo kinshasa","democratic republic congo"]},
+  {code:"cg",name:"Republic of the Congo",alt:["congo","congo brazzaville","republic of congo"]},
+  {code:"cr",name:"Costa Rica",alt:[]},
+  {code:"ci",name:"Ivory Coast",alt:["cote d'ivoire","côte d'ivoire","cote divoire","ivory coast"]},
+  {code:"hr",name:"Croatia",alt:["croatian"]},
+  {code:"cu",name:"Cuba",alt:[]},
+  {code:"cy",name:"Cyprus",alt:[]},
+  {code:"cz",name:"Czech Republic",alt:["czechia","czech"]},
+  {code:"dk",name:"Denmark",alt:["danish"]},
+  {code:"dj",name:"Djibouti",alt:[]},
+  {code:"dm",name:"Dominica",alt:[]},
+  {code:"do",name:"Dominican Republic",alt:["dominican"]},
+  {code:"ec",name:"Ecuador",alt:[]},
+  {code:"eg",name:"Egypt",alt:["egyptian"]},
+  {code:"sv",name:"El Salvador",alt:["salvador"]},
+  {code:"gq",name:"Equatorial Guinea",alt:[]},
+  {code:"er",name:"Eritrea",alt:[]},
+  {code:"ee",name:"Estonia",alt:["estonian"]},
+  {code:"sz",name:"Eswatini",alt:["swaziland"]},
+  {code:"et",name:"Ethiopia",alt:["ethiopian"]},
+  {code:"fj",name:"Fiji",alt:[]},
+  {code:"fi",name:"Finland",alt:["finnish"]},
+  {code:"fr",name:"France",alt:["french"]},
+  {code:"ga",name:"Gabon",alt:[]},
+  {code:"gm",name:"Gambia",alt:["the gambia"]},
+  {code:"ge",name:"Georgia",alt:[]},
+  {code:"de",name:"Germany",alt:["german","deutschland"]},
+  {code:"gh",name:"Ghana",alt:[]},
+  {code:"gr",name:"Greece",alt:["greek","hellas"]},
+  {code:"gd",name:"Grenada",alt:[]},
+  {code:"gt",name:"Guatemala",alt:[]},
+  {code:"gn",name:"Guinea",alt:[]},
+  {code:"gw",name:"Guinea-Bissau",alt:["guinea bissau"]},
+  {code:"gy",name:"Guyana",alt:[]},
+  {code:"ht",name:"Haiti",alt:[]},
+  {code:"hn",name:"Honduras",alt:[]},
+  {code:"hu",name:"Hungary",alt:["hungarian"]},
+  {code:"is",name:"Iceland",alt:["icelandic"]},
+  {code:"in",name:"India",alt:["indian"]},
+  {code:"id",name:"Indonesia",alt:["indonesian"]},
+  {code:"ir",name:"Iran",alt:["persia","persian"]},
+  {code:"iq",name:"Iraq",alt:[]},
+  {code:"ie",name:"Ireland",alt:["irish","eire"]},
+  {code:"il",name:"Israel",alt:[]},
+  {code:"it",name:"Italy",alt:["italian","italia"]},
+  {code:"jm",name:"Jamaica",alt:[]},
+  {code:"jp",name:"Japan",alt:["japanese","nippon"]},
+  {code:"jo",name:"Jordan",alt:[]},
+  {code:"kz",name:"Kazakhstan",alt:[]},
+  {code:"ke",name:"Kenya",alt:[]},
+  {code:"ki",name:"Kiribati",alt:[]},
+  {code:"kw",name:"Kuwait",alt:[]},
+  {code:"kg",name:"Kyrgyzstan",alt:["kyrgyz republic"]},
+  {code:"la",name:"Laos",alt:["lao","lao pdr"]},
+  {code:"lv",name:"Latvia",alt:["latvian"]},
+  {code:"lb",name:"Lebanon",alt:[]},
+  {code:"ls",name:"Lesotho",alt:[]},
+  {code:"lr",name:"Liberia",alt:[]},
+  {code:"ly",name:"Libya",alt:[]},
+  {code:"li",name:"Liechtenstein",alt:[]},
+  {code:"lt",name:"Lithuania",alt:["lithuanian"]},
+  {code:"lu",name:"Luxembourg",alt:[]},
+  {code:"mg",name:"Madagascar",alt:[]},
+  {code:"mw",name:"Malawi",alt:[]},
+  {code:"my",name:"Malaysia",alt:[]},
+  {code:"mv",name:"Maldives",alt:[]},
+  {code:"ml",name:"Mali",alt:[]},
+  {code:"mt",name:"Malta",alt:[]},
+  {code:"mh",name:"Marshall Islands",alt:[]},
+  {code:"mr",name:"Mauritania",alt:[]},
+  {code:"mu",name:"Mauritius",alt:[]},
+  {code:"mx",name:"Mexico",alt:["mexican","mejico"]},
+  {code:"fm",name:"Micronesia",alt:["federated states of micronesia","fsm"]},
+  {code:"md",name:"Moldova",alt:["republic of moldova"]},
+  {code:"mc",name:"Monaco",alt:[]},
+  {code:"mn",name:"Mongolia",alt:[]},
+  {code:"me",name:"Montenegro",alt:[]},
+  {code:"ma",name:"Morocco",alt:["maroc"]},
+  {code:"mz",name:"Mozambique",alt:[]},
+  {code:"mm",name:"Myanmar",alt:["burma"]},
+  {code:"na",name:"Namibia",alt:[]},
+  {code:"nr",name:"Nauru",alt:[]},
+  {code:"np",name:"Nepal",alt:[]},
+  {code:"nl",name:"Netherlands",alt:["holland","dutch","the netherlands"]},
+  {code:"nz",name:"New Zealand",alt:["nz","kiwi"]},
+  {code:"ni",name:"Nicaragua",alt:[]},
+  {code:"ne",name:"Niger",alt:[]},
+  {code:"ng",name:"Nigeria",alt:["nigerian"]},
+  {code:"kp",name:"North Korea",alt:["dprk","democratic peoples republic of korea"]},
+  {code:"mk",name:"North Macedonia",alt:["macedonia","northern macedonia","republic of north macedonia"]},
+  {code:"no",name:"Norway",alt:["norwegian","norge"]},
+  {code:"om",name:"Oman",alt:[]},
+  {code:"pk",name:"Pakistan",alt:["pakistani"]},
+  {code:"pw",name:"Palau",alt:[]},
+  {code:"pa",name:"Panama",alt:[]},
+  {code:"pg",name:"Papua New Guinea",alt:["png"]},
+  {code:"py",name:"Paraguay",alt:[]},
+  {code:"pe",name:"Peru",alt:[]},
+  {code:"ph",name:"Philippines",alt:["the philippines","pilipinas"]},
+  {code:"pl",name:"Poland",alt:["polish","polska"]},
+  {code:"pt",name:"Portugal",alt:["portuguese"]},
+  {code:"qa",name:"Qatar",alt:["katar"]},
+  {code:"ro",name:"Romania",alt:["rumania","roumania"]},
+  {code:"ru",name:"Russia",alt:["russian federation","russian"]},
+  {code:"rw",name:"Rwanda",alt:[]},
+  {code:"kn",name:"Saint Kitts and Nevis",alt:["st kitts","st kitts and nevis","saint kitts","saint kitts & nevis"]},
+  {code:"lc",name:"Saint Lucia",alt:["st lucia"]},
+  {code:"vc",name:"Saint Vincent and the Grenadines",alt:["st vincent","saint vincent","st vincent and the grenadines"]},
+  {code:"ws",name:"Samoa",alt:[]},
+  {code:"sm",name:"San Marino",alt:[]},
+  {code:"st",name:"Sao Tome and Principe",alt:["sao tome","são tomé and príncipe","são tomé"]},
+  {code:"sa",name:"Saudi Arabia",alt:["ksa"]},
+  {code:"sn",name:"Senegal",alt:[]},
+  {code:"rs",name:"Serbia",alt:["serbian"]},
+  {code:"sc",name:"Seychelles",alt:[]},
+  {code:"sl",name:"Sierra Leone",alt:[]},
+  {code:"sg",name:"Singapore",alt:[]},
+  {code:"sk",name:"Slovakia",alt:["slovak republic"]},
+  {code:"si",name:"Slovenia",alt:["slovenian"]},
+  {code:"sb",name:"Solomon Islands",alt:[]},
+  {code:"so",name:"Somalia",alt:[]},
+  {code:"za",name:"South Africa",alt:["rsa"]},
+  {code:"ss",name:"South Sudan",alt:[]},
+  {code:"es",name:"Spain",alt:["spanish","espana","españa"]},
+  {code:"lk",name:"Sri Lanka",alt:["ceylon"]},
+  {code:"sd",name:"Sudan",alt:[]},
+  {code:"sr",name:"Suriname",alt:[]},
+  {code:"se",name:"Sweden",alt:["swedish","sverige"]},
+  {code:"ch",name:"Switzerland",alt:["swiss"]},
+  {code:"sy",name:"Syria",alt:["syrian arab republic"]},
+  {code:"tw",name:"Taiwan",alt:["republic of china","roc"]},
+  {code:"tj",name:"Tajikistan",alt:[]},
+  {code:"tz",name:"Tanzania",alt:[]},
+  {code:"th",name:"Thailand",alt:["thai"]},
+  {code:"tl",name:"Timor-Leste",alt:["east timor","timor leste"]},
+  {code:"tg",name:"Togo",alt:[]},
+  {code:"to",name:"Tonga",alt:[]},
+  {code:"tt",name:"Trinidad and Tobago",alt:["trinidad","trinidad & tobago"]},
+  {code:"tn",name:"Tunisia",alt:[]},
+  {code:"tr",name:"Turkey",alt:["turkiye","türkiye","turkish"]},
+  {code:"tm",name:"Turkmenistan",alt:[]},
+  {code:"tv",name:"Tuvalu",alt:[]},
+  {code:"ug",name:"Uganda",alt:[]},
+  {code:"ua",name:"Ukraine",alt:["ukrainian"]},
+  {code:"ae",name:"United Arab Emirates",alt:["uae","emirates"]},
+  {code:"gb",name:"United Kingdom",alt:["uk","great britain","britain","england","england","scotland","wales"]},
+  {code:"us",name:"United States",alt:["usa","united states of america","america","american","us of a"]},
+  {code:"uy",name:"Uruguay",alt:[]},
+  {code:"uz",name:"Uzbekistan",alt:[]},
+  {code:"vu",name:"Vanuatu",alt:[]},
+  {code:"ve",name:"Venezuela",alt:[]},
+  {code:"vn",name:"Vietnam",alt:["viet nam","vietnamese"]},
+  {code:"ye",name:"Yemen",alt:[]},
+  {code:"zm",name:"Zambia",alt:[]},
+  {code:"zw",name:"Zimbabwe",alt:[]}
+];
+
+// ── STATE ──
+let shuffled = [];
+let currentIndex = 0;
+let timerInterval = null;
+let startTime = 0;
+let elapsedMs = 0;
+let correctCount = 0;
+let skippedCount = 0;
+let closeCount = 0;
+let splitTimes = [];
+let flagStartTime = 0;
+let currentUser = '';
+let feedbackTimeout = null;
+let inputLocked = false;
+
+// ── STORAGE ──
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem('flagrush_lb') || '[]'); } catch { return []; }
+}
+
+function saveLeaderboard(lb) {
+  localStorage.setItem('flagrush_lb', JSON.stringify(lb));
+}
+
+function getRecentRuns() {
+  try { return JSON.parse(localStorage.getItem('flagrush_runs') || '[]'); } catch { return []; }
+}
+
+function saveRecentRuns(runs) {
+  localStorage.setItem('flagrush_runs', JSON.stringify(runs));
+}
+
+function getSavedUsername() {
+  return localStorage.getItem('flagrush_user') || '';
+}
+
+function saveUsername(name) {
+  localStorage.setItem('flagrush_user', name);
+}
+
+// ── UTILS ──
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return min + ':' + String(sec).padStart(2, '0');
+}
+
+function formatTimeMs(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  const centisec = Math.floor((ms % 1000) / 10);
+  return min + ':' + String(sec).padStart(2, '0') + '.' + String(centisec).padStart(2, '0');
+}
+
+function normalise(str) {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_, i) => [i]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i-1] === b[j-1]
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function checkAnswer(input, flag) {
+  const norm = normalise(input);
+  if (!norm) return 'empty';
+
+  const targets = [flag.name, ...flag.alt].map(normalise);
+
+  // exact match
+  if (targets.includes(norm)) return 'correct';
+
+  // prefix match: only if typed at least 60% of the target AND starts from the beginning
+  for (const t of targets) {
+    if (t.startsWith(norm) && norm.length >= Math.max(4, Math.ceil(t.length * 0.6))) return 'close';
+  }
+
+  // fuzzy match: only fires when input length is within 2 chars of target
+  // and distance is at most 2 (typos/transpositions only, not wrong answers)
+  for (const t of targets) {
+    const lenDiff = Math.abs(norm.length - t.length);
+    if (lenDiff > 2) continue; // input too short or too long to be a typo
+    const dist = levenshtein(norm, t);
+    const threshold = norm.length <= 5 ? 1 : 2; // short words: max 1 edit; longer: max 2
+    if (dist <= threshold) return 'close';
+  }
+
+  return 'wrong';
+}
+
+// ── SCREENS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── HOME ──
+function initHome() {
+  const saved = getSavedUsername();
+  if (saved) document.getElementById('username-input').value = saved;
+
+  const lb = getLeaderboard();
+  const runs = getRecentRuns();
+
+  document.getElementById('home-runs').textContent = runs.length;
+
+  if (runs.length > 0) {
+    const best = runs.reduce((a, b) => a.timeMs < b.timeMs ? a : b);
+    document.getElementById('home-best').textContent = formatTime(best.timeMs);
+  } else {
+    document.getElementById('home-best').textContent = '—';
+  }
+
+  renderLeaderboard('home-leaderboard', lb, null);
+}
+
+function renderLeaderboard(elId, lb, highlightUser) {
+  const el = document.getElementById(elId);
+  if (!lb || lb.length === 0) {
+    el.innerHTML = '<div class="lb-empty">No scores yet — be the first!</div>';
+    return;
+  }
+
+  const sorted = [...lb].sort((a, b) => a.timeMs - b.timeMs).slice(0, 10);
+  el.innerHTML = sorted.map((entry, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
+    const hl = highlightUser && entry.name === highlightUser ? ' highlight' : '';
+    return `<div class="lb-row${hl}">
+      <span class="lb-rank ${rankClass}">${medal}</span>
+      <span class="lb-name">${entry.name}</span>
+      <span class="lb-time">${formatTimeMs(entry.timeMs)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── GAME ──
+function startGame() {
+  const nameInput = document.getElementById('username-input');
+  currentUser = (nameInput.value || 'Anonymous').trim().slice(0, 20);
+  saveUsername(currentUser);
+
+  shuffled = shuffle(FLAGS);
+  currentIndex = 0;
+  correctCount = 0;
+  skippedCount = 0;
+  closeCount = 0;
+  splitTimes = [];
+  elapsedMs = 0;
+  inputLocked = false;
+
+  showScreen('game');
+  showFlag();
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  startTime = Date.now() - elapsedMs;
+  timerInterval = setInterval(() => {
+    elapsedMs = Date.now() - startTime;
+    document.getElementById('timer-display').textContent = formatTime(elapsedMs);
+  }, 100);
+}
+
+function showFlag() {
+  if (currentIndex >= shuffled.length) {
+    endGame();
+    return;
+  }
+
+  const flag = shuffled[currentIndex];
+  const img = document.getElementById('flag-img');
+  img.src = `https://flagcdn.com/w320/${flag.code}.png`;
+  img.alt = 'Flag';
+
+  const input = document.getElementById('answer-input');
+  input.value = '';
+  input.className = 'answer-input';
+  input.disabled = false;
+  inputLocked = false;
+
+  document.getElementById('feedback-label').textContent = '';
+  document.getElementById('feedback-label').className = 'feedback-label';
+
+  const pct = (currentIndex / shuffled.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = (currentIndex + 1) + ' / ' + shuffled.length;
+
+  const card = document.getElementById('flag-card');
+  card.classList.remove('entering', 'correct-flash');
+  void card.offsetWidth;
+  card.classList.add('entering');
+
+  flagStartTime = Date.now();
+
+  setTimeout(() => input.focus(), 50);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('answer-input');
+
+  input.addEventListener('input', () => {
+    if (inputLocked) return;
+    const val = input.value;
+    const flag = shuffled[currentIndex];
+    if (!val) {
+      input.className = 'answer-input';
+      document.getElementById('feedback-label').textContent = '';
+      document.getElementById('feedback-label').className = 'feedback-label';
+      return;
+    }
+
+    const result = checkAnswer(val, flag);
+    if (result === 'correct') {
+      handleCorrect();
+    } else if (result === 'close') {
+      input.className = 'answer-input state-close';
+      const fb = document.getElementById('feedback-label');
+      fb.textContent = 'Almost… check your spelling';
+      fb.className = 'feedback-label close';
+      closeCount++;
+    } else {
+      input.className = 'answer-input';
+      document.getElementById('feedback-label').textContent = '';
+      document.getElementById('feedback-label').className = 'feedback-label';
+    }
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !inputLocked) {
+      const val = input.value;
+      const flag = shuffled[currentIndex];
+      const result = checkAnswer(val, flag);
+      if (result === 'correct') {
+        handleCorrect();
+      } else if (result !== 'empty') {
+        triggerWrong();
+      }
+    }
+  });
+
+  initHome();
+});
+
+function handleCorrect() {
+  if (inputLocked) return;
+  inputLocked = true;
+
+  const input = document.getElementById('answer-input');
+  input.className = 'answer-input state-correct';
+  input.disabled = true;
+
+  const fb = document.getElementById('feedback-label');
+  fb.textContent = '✓ Correct!';
+  fb.className = 'feedback-label correct';
+
+  const card = document.getElementById('flag-card');
+  card.classList.add('correct-flash');
+
+  const splitMs = Date.now() - flagStartTime;
+  splitTimes.push({ code: shuffled[currentIndex].code, name: shuffled[currentIndex].name, ms: splitMs });
+  correctCount++;
+
+  currentIndex++;
+  setTimeout(showFlag, 500);
+}
+
+function triggerWrong() {
+  const input = document.getElementById('answer-input');
+  input.classList.remove('shake');
+  void input.offsetWidth;
+  input.classList.add('shake', 'state-wrong');
+
+  const fb = document.getElementById('feedback-label');
+  fb.textContent = 'Not quite — keep trying';
+  fb.className = 'feedback-label wrong';
+
+  clearTimeout(feedbackTimeout);
+  feedbackTimeout = setTimeout(() => {
+    input.classList.remove('state-wrong');
+    input.classList.remove('shake');
+    fb.textContent = '';
+    fb.className = 'feedback-label';
+  }, 600);
+}
+
+function skipFlag() {
+  if (inputLocked) return;
+  skippedCount++;
+  splitTimes.push({ code: shuffled[currentIndex].code, name: shuffled[currentIndex].name, ms: null });
+  currentIndex++;
+  showFlag();
+}
+
+function confirmQuit() {
+  if (confirm('Quit this run? Your progress will be lost.')) {
+    clearInterval(timerInterval);
+    showScreen('home');
+    initHome();
+  }
+}
+
+// ── END GAME ──
+function endGame() {
+  clearInterval(timerInterval);
+
+  const totalMs = elapsedMs;
+  const avgMs = correctCount > 0 ? Math.round(totalMs / correctCount) : 0;
+
+  // save to leaderboard
+  const lb = getLeaderboard();
+  const existingIdx = lb.findIndex(e => e.name === currentUser);
+  let isNewBest = false;
+  if (existingIdx >= 0) {
+    if (totalMs < lb[existingIdx].timeMs) {
+      lb[existingIdx].timeMs = totalMs;
+      isNewBest = true;
+    }
+  } else {
+    lb.push({ name: currentUser, timeMs: totalMs });
+    isNewBest = true;
+  }
+  saveLeaderboard(lb);
+
+  // save run
+  const runs = getRecentRuns();
+  runs.unshift({
+    timeMs: totalMs,
+    correct: correctCount,
+    skipped: skippedCount,
+    date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+  });
+  saveRecentRuns(runs.slice(0, 20));
+
+  // populate results
+  document.getElementById('results-title').textContent = 'Run complete, ' + currentUser + '!';
+  document.getElementById('results-subtitle').textContent = isNewBest ? '🎉 New personal best!' : 'Keep practicing!';
+  document.getElementById('final-time').textContent = formatTimeMs(totalMs);
+  document.getElementById('final-time-sub').textContent = correctCount + ' of 193 flags named correctly';
+
+  document.getElementById('stat-correct').textContent = correctCount;
+  document.getElementById('stat-skipped').textContent = skippedCount;
+  document.getElementById('stat-close').textContent = closeCount;
+  document.getElementById('stat-avg').textContent = (avgMs / 1000).toFixed(1) + 's';
+
+  renderLeaderboard('results-leaderboard', lb, currentUser);
+
+  const runsEl = document.getElementById('recent-runs');
+  const recentRuns = getRecentRuns();
+  if (recentRuns.length === 0) {
+    runsEl.innerHTML = '<div class="lb-empty">No runs yet</div>';
+  } else {
+    runsEl.innerHTML = recentRuns.slice(0, 8).map(r => `
+      <div class="run-row">
+        <span class="run-date">${r.date}</span>
+        <span class="run-flags">${r.correct}/193 correct</span>
+        <span class="run-time">${formatTimeMs(r.timeMs)}</span>
+      </div>
+    `).join('');
+  }
+
+  showScreen('results');
+}
+</script>
+</body>
+</html>
