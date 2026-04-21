@@ -257,7 +257,7 @@
   }
 
   .flag-img-wrap {
-    height: 180px;
+    height: 140px;
     width: auto;
     max-width: 100%;
     border-radius: 8px;
@@ -268,7 +268,7 @@
   }
 
   .flag-img-wrap img {
-    height: 180px;
+    height: 140px;
     width: auto;
     max-width: 100%;
     display: block;
@@ -276,7 +276,7 @@
   }
 
   .flag-img-wrap img.flag-tall {
-    height: 180px;
+    height: 140px;
     width: auto;
   }
 
@@ -644,8 +644,11 @@
   </div>
 
   <div class="skip-row">
-    <button class="btn-secondary" onclick="revealFlag()">Reveal name 👁</button>
-    <button class="btn-secondary" onclick="skipFlag()">Skip flag</button>
+    <button class="btn-primary" onclick="submitAnswer()" id="submit-btn">Submit ↵</button>
+  </div>
+  <div class="skip-row" style="margin-top:-0.5rem;">
+    <button class="btn-secondary" onclick="revealFlag()">Reveal 👁</button>
+    <button class="btn-secondary" onclick="skipFlag()">Skip</button>
   </div>
 </div>
 
@@ -1128,7 +1131,6 @@ function showFlag() {
   const input = document.getElementById('answer-input');
   input.value = '';
   input.className = 'answer-input';
-  input.disabled = false;
   inputLocked = false;
 
   document.getElementById('feedback-label').textContent = '';
@@ -1166,28 +1168,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Enter: evaluate and show correct / close / wrong feedback
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !inputLocked) {
-      const val = input.value;
-      if (!val.trim()) return;
-      const flag = shuffled[currentIndex];
-      const result = checkAnswer(val, flag);
-      if (result === 'correct') {
-        handleCorrect();
-      } else if (result === 'close') {
-        input.classList.remove('state-wrong', 'state-correct');
-        input.classList.add('state-close');
-        const fb = document.getElementById('feedback-label');
-        fb.textContent = 'Almost… check your spelling';
-        fb.className = 'feedback-label close';
-        closeCount++;
-        clearTimeout(feedbackTimeout);
-        feedbackTimeout = setTimeout(() => {
-          input.classList.remove('state-close');
-          fb.textContent = '';
-          fb.className = 'feedback-label';
-        }, 1200);
-      } else {
-        triggerWrong();
-      }
+      submitAnswer();
     }
   });
 
@@ -1200,7 +1181,6 @@ function handleCorrect() {
 
   const input = document.getElementById('answer-input');
   input.className = 'answer-input state-correct';
-  input.disabled = true;
 
   const fb = document.getElementById('feedback-label');
   fb.textContent = '✓ Correct!';
@@ -1215,7 +1195,38 @@ function handleCorrect() {
   correctCount++;
 
   currentIndex++;
-  setTimeout(showFlag, 500);
+  setTimeout(() => {
+    showFlag();
+    // keep keyboard up on mobile by refocusing immediately
+    document.getElementById('answer-input').focus();
+  }, 400);
+}
+
+function submitAnswer() {
+  const input = document.getElementById('answer-input');
+  if (inputLocked || !input.value.trim()) return;
+  const flag = shuffled[currentIndex];
+  const result = checkAnswer(input.value, flag);
+  if (result === 'correct') {
+    handleCorrect();
+  } else if (result === 'close') {
+    input.classList.remove('state-wrong', 'state-correct');
+    input.classList.add('state-close');
+    const fb = document.getElementById('feedback-label');
+    fb.textContent = 'Almost… check your spelling';
+    fb.className = 'feedback-label close';
+    closeCount++;
+    clearTimeout(feedbackTimeout);
+    feedbackTimeout = setTimeout(() => {
+      input.classList.remove('state-close');
+      fb.textContent = '';
+      fb.className = 'feedback-label';
+    }, 1200);
+    input.focus();
+  } else {
+    triggerWrong();
+    input.focus();
+  }
 }
 
 function triggerWrong() {
