@@ -54,9 +54,9 @@
     top: 0.75rem;
     right: 0.75rem;
     z-index: 100;
-    background: #1A1814;
-    color: #F0EDE6;
-    border: 1px solid rgba(0,0,0,0.15);
+    background: var(--text);
+    color: var(--bg);
+    border: 1px solid var(--border);
     border-radius: 99px;
     padding: 6px 12px;
     font-size: 1rem;
@@ -67,9 +67,9 @@
   }
 
   [data-theme="dark"] .theme-toggle {
-    background: #F0EDE6;
-    color: #1A1814;
-    border-color: rgba(255,255,255,0.15);
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--border);
   }
 
   .theme-toggle:hover { opacity: 0.85; }
@@ -229,17 +229,15 @@
   #game { gap: 1.25rem; padding-top: 0.75rem; }
 
   .game-topbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
     width: 100%;
-    padding: 0 0.25rem;
-    padding-right: 4rem;
-    gap: 0.5rem;
+    padding: 0 0.5rem;
   }
 
   .progress-wrap {
-    flex: 1;
-    min-width: 0;
+    /* centre column — naturally centred by grid */
   }
 
   .progress-text {
@@ -272,7 +270,8 @@
     font-weight: 800;
     color: var(--text);
     white-space: nowrap;
-    flex-shrink: 0;
+    justify-self: end;
+    text-align: right;
     letter-spacing: -0.02em;
   }
 
@@ -286,6 +285,7 @@
     border-radius: 8px;
     transition: color 0.15s, background 0.15s;
     line-height: 1;
+    justify-self: start;
   }
 
   .quit-btn:hover { color: var(--wrong); background: var(--wrong-bg); }
@@ -934,7 +934,7 @@
     <div class="card-actions">
       <button class="btn-action-secondary" onpointerdown="event.preventDefault(); skipFlag();">Skip</button>
       <button class="btn-action-secondary" onpointerdown="event.preventDefault(); revealFlag();">Reveal 👁</button>
-      <button class="btn-action-submit" onpointerdown="event.preventDefault(); submitAnswer();" id="submit-btn">→</button>
+      <button class="btn-action-submit" onpointerdown="event.preventDefault(); submitAnswer();" id="submit-btn">Submit →</button>
     </div>
   </div>
 </div>
@@ -1195,6 +1195,7 @@ let correctCount = 0;
 let skippedCount = 0;
 let closeCount = 0;
 let splitTimes = [];
+let missedFlags = []; // persisted list of flags the player skipped or couldn't answer — used by Practice mode (Phase 3)
 let flagStartTime = 0;
 let currentUser = '';
 let feedbackTimeout = null;
@@ -1336,12 +1337,16 @@ function checkAnswer(input, flag) {
     if (t.startsWith(norm) && norm.length >= Math.max(4, Math.ceil(t.length * 0.6))) return 'close';
   }
 
-  // fuzzy match: input length within 2 of target, max 2 edits (1 for short words)
+  // fuzzy match: scaled threshold by target length to avoid false positives on short names
+  // ≤4 chars (Chad, Cuba, Oman, Laos, Fiji, Niue): threshold 0 — exact only, no fuzzy
+  // 5-6 chars (Egypt, Ghana, Kenya, Qatar, Syria, Yemen): threshold 1
+  // 7-8 chars (Algeria, Belgium, Denmark): threshold 1
+  // 9+ chars (Argentina, Bangladesh, ...): threshold 2
   for (const t of targets) {
     const lenDiff = Math.abs(norm.length - t.length);
     if (lenDiff > 2) continue;
     const dist = levenshtein(norm, t);
-    const threshold = norm.length <= 5 ? 1 : 2;
+    const threshold = t.length <= 4 ? 0 : t.length <= 8 ? 1 : 2;
     if (dist <= threshold) return 'close';
   }
 
@@ -1353,6 +1358,9 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
+  // Hide theme toggle during gameplay so it doesn't overlap the timer on mobile
+  const toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.style.display = id === 'game' ? 'none' : '';
 }
 
 // ── MODE SELECT ──
@@ -1427,6 +1435,8 @@ function renderLeaderboard(elId, lb, highlightUser) {
 
 // ── GAME ──
 function startGame(continent) {
+  clearInterval(timerInterval); // defensive clear — prevents stale interval if re-entering mid-game via back-navigation
+
   const nameInput = document.getElementById('username-input');
   currentUser = (nameInput.value || 'Anonymous').trim().slice(0, 20);
   saveUsername(currentUser);
@@ -1441,6 +1451,7 @@ function startGame(continent) {
   closeCount = 0;
   revealedCount = 0;
   splitTimes = [];
+  missedFlags = []; // reset missed flags for this run
   elapsedMs = 0;
   inputLocked = false;
 
@@ -1627,8 +1638,10 @@ function triggerWrong() {
 
 function skipFlag() {
   if (inputLocked) return;
+  const flag = shuffled[currentIndex];
   skippedCount++;
-  splitTimes.push({ code: shuffled[currentIndex].code, name: shuffled[currentIndex].name, ms: null, revealed: false });
+  splitTimes.push({ code: flag.code, name: flag.name, ms: null, skipped: true });
+  missedFlags.push({ code: flag.code, name: flag.name, reason: 'skipped' }); // saved for Practice mode
   currentIndex++;
   showFlag();
 }
@@ -1640,6 +1653,10 @@ function revealFlag() {
   const fb = document.getElementById('feedback-label');
   fb.textContent = '👁 ' + flag.name;
   fb.className = 'feedback-label close';
+  // Track as a miss for Practice mode — player needed the answer revealed
+  if (!missedFlags.find(m => m.code === flag.code)) {
+    missedFlags.push({ code: flag.code, name: flag.name, reason: 'revealed' });
+  }
   // after reveal, player must still type it correctly — just now they know the answer
 }
 
@@ -1690,10 +1707,22 @@ function endGame() {
     total: shuffled.length,
     skipped: skippedCount,
     revealed: revealedCount,
+    missed: missedFlags.map(m => m.code), // stored for Practice mode
     continent: currentContinent || null,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   });
   saveRecentRuns(runs.slice(0, 20));
+
+  // persist missed flags for Practice mode (Phase 3) — merge with any existing missed flags
+  try {
+    const prev = JSON.parse(localStorage.getItem('flagrush_missed') || '[]');
+    const merged = [...prev];
+    for (const m of missedFlags) {
+      if (!merged.find(x => x.code === m.code)) merged.push(m);
+    }
+    localStorage.setItem('flagrush_missed', JSON.stringify(merged.slice(0, 193)));
+  } catch {}
+
 
   // populate results
   document.getElementById('results-title').textContent = 'Run complete, ' + currentUser + '!';
