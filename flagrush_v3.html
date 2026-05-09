@@ -957,7 +957,7 @@
         </div>
         <div class="stat-pill">
           <span class="num" id="home-best">—</span>
-          <span class="lbl">Your best</span>
+          <span class="lbl">Best score</span>
         </div>
         <div class="stat-pill">
           <span class="num" id="home-runs">0</span>
@@ -1309,6 +1309,7 @@ let elapsedMs = 0;
 let correctCount = 0;
 let skippedCount = 0;
 let closeCount = 0;
+let revealedCount = 0;
 let splitTimes = [];
 let missedFlags = [];
 let flagStartTime = 0;
@@ -1378,11 +1379,12 @@ function calcSpeedBonus(totalMs, flagCount) {
   return Math.round(scaled * MAX_BONUS);
 }
 
-function getStarRating(score) {
-  if (score >= 39000) return 5;
-  if (score >= 30000) return 4;
-  if (score >= 18000) return 3;
-  if (score >=  8000) return 2;
+function getStarRating(score, flagCount) {
+  const scale = (flagCount || 193) / 193;
+  if (score >= Math.round(39000 * scale)) return 5;
+  if (score >= Math.round(30000 * scale)) return 4;
+  if (score >= Math.round(18000 * scale)) return 3;
+  if (score >= Math.round( 8000 * scale)) return 2;
   return 1;
 }
 
@@ -1613,8 +1615,8 @@ function initHome() {
   document.getElementById('home-runs').textContent = runs.length;
 
   if (runs.length > 0) {
-    const best = runs.reduce((a, b) => a.timeMs < b.timeMs ? a : b);
-    document.getElementById('home-best').textContent = formatTime(best.timeMs);
+    const best = runs.reduce((a, b) => (a.score || 0) > (b.score || 0) ? a : b);
+    document.getElementById('home-best').textContent = (best.score || 0).toLocaleString();
   } else {
     document.getElementById('home-best').textContent = '—';
   }
@@ -1629,7 +1631,7 @@ function renderLeaderboard(elId, lb, highlightUser) {
     return;
   }
 
-  const sorted = [...lb].sort((a, b) => a.timeMs - b.timeMs).slice(0, 10);
+  const sorted = [...lb].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 10);
   el.innerHTML = sorted.map((entry, i) => {
     const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
@@ -1696,6 +1698,7 @@ function startTimer() {
 }
 
 function showFlag() {
+  clearTimeout(feedbackTimeout);
   if (currentIndex >= shuffled.length) {
     endGame();
     return;
@@ -1836,7 +1839,7 @@ function submitAnswer() {
     input.classList.remove('state-wrong', 'state-correct');
     input.classList.add('state-close');
     const fb = document.getElementById('feedback-label');
-    fb.textContent = 'Almost… check your spelling';
+    fb.textContent = 'Almost! (+' + pts + ') — press Enter to continue';
     fb.className = 'feedback-label close';
 
     currentStreak++;
@@ -1925,7 +1928,7 @@ function endGame() {
   const avgMs = correctCount > 0 ? Math.round(totalMs / correctCount) : 0;
   const speedBonus = calcSpeedBonus(totalMs, shuffled.length);
   const finalScore = currentScore + speedBonus;
-  const stars = getStarRating(finalScore);
+  const stars = getStarRating(finalScore, shuffled.length);
 
   const regionKey = currentContinent || 'all';
   const isRegionNewBest = updateRegionBest(regionKey, totalMs);
