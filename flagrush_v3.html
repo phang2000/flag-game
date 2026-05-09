@@ -1838,14 +1838,15 @@ function submitAnswer() {
   } else if (result === 'close') {
     input.classList.remove('state-wrong', 'state-correct');
     input.classList.add('state-close');
-    const fb = document.getElementById('feedback-label');
-    fb.textContent = 'Almost! (+' + pts + ') — press Enter to continue';
-    fb.className = 'feedback-label close';
 
     currentStreak++;
     if (currentStreak > bestStreak) bestStreak = currentStreak;
     const pts = calcFlagScore('close');
     currentScore += pts;
+
+    const fb = document.getElementById('feedback-label');
+    fb.textContent = 'Almost! (+' + pts + ') — press Enter to continue';
+    fb.className = 'feedback-label close';
     closeCount++;
     correctCount++;
 
@@ -1899,9 +1900,12 @@ function skipFlag() {
 
 function revealFlag() {
   if (inputLocked) return;
+  const wasClose = awaitingAdvance;
   awaitingAdvance = false;
-  revealedCount++;
-  currentStreak = 0;
+  if (!wasClose) {
+    revealedCount++;
+    currentStreak = 0;
+  }
   const flag = shuffled[currentIndex];
   const fb = document.getElementById('feedback-label');
   fb.textContent = '👁 ' + flag.name;
@@ -1955,6 +1959,9 @@ function endGame() {
     saveLeaderboard(lb);
   } else {
     isNewBest = isRegionNewBest;
+    const regionRuns = getRecentRuns().filter(r => r.continent === currentContinent);
+    const prevBestScore = regionRuns.length > 1 ? Math.max(...regionRuns.slice(1).map(r => r.score || 0)) : 0;
+    if (finalScore > prevBestScore) isNewScoreBest = true;
   }
 
   const runs = getRecentRuns();
