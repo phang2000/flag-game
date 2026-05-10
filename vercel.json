@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/flagrush_v3.html" }
+  ]
+}
