@@ -46,6 +46,10 @@ Formula: `flag score = base pts × streakMultiplier(currentStreak)`
 ### Speed bonus (end of run)
 Asymptotic cubic curve — approaches but **mathematically never reaches** the maximum. This is intentional and core to the speedrun hook.
 
+> ⚠️ **Under review:** Peter has flagged that he wants the bonus to be truly uncapped (approaching infinity as time → 0, not approaching a fixed MAX). This would change the score ceiling from ~42,500 to mathematically infinite, which is more pure as a speedrunning hook but requires recalibrating star thresholds and benchmark scores. **Do not implement without a dedicated design session.**
+
+> ⚠️ **Design gap:** `MAX_BONUS` is fixed at 5,000 regardless of pool size. This makes the speed bonus disproportionately large for small modes — in Oceania (14 flags), the bonus can be 165% of max possible flag score vs ~12% in all-193 mode. `MAX_BONUS` should scale with `flagCount / 193` (same formula used for star ratings). Pending fix.
+
 ```js
 function calcSpeedBonus(totalMs, flagCount) {
   const MAX_BONUS = 5000;
@@ -191,15 +195,18 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 ## Known Issues / Next Tasks
 
 ### Immediate bugs
-- [ ] **Close answer auto-advance** — close answers fire a 900ms timeout then call `currentIndex++` and `showFlag()` without the player re-submitting. If the player is still correcting their spelling, the flag yanks away. Should wait for player input, not auto-advance.
+- [x] **Close answer auto-advance** — fixed. Now uses `awaitingAdvance` flag; player presses Enter to advance. Feedback label shows correct spelling with diff highlight.
 
 ### Phase 2 — UX polish (not yet built)
 - [ ] Replace native `confirm()` quit dialog with custom in-game overlay card
 - [ ] First-time onboarding hint (one example flag + explanation of correct/close/wrong)
 - [ ] Continent mode entry point more prominent on home screen
+- [ ] **Enter key on home screen** — pressing Enter on the login screen should start the game (same as clicking "Start game"). If no name entered, show inline nudge rather than proceeding as Anonymous.
+- [ ] **End-of-run skipped flags review** — after a run with skips, show a read-only scroll of the flags missed with their names revealed. No re-scoring — just closure and memory reinforcement. Lighter than Practice Mode, could ship in Phase 2.
 
 ### Phase 3 — Engagement (not yet built)
 - [ ] **Practice mode** — use `flagrush_missed` localStorage data to drill the flags the player struggled with. Data is already being collected.
+- [ ] **Revisit skipped flags mid-run** — option to loop back to skipped flags at the end of a run (before the results screen) for a second attempt. Adds complexity; consider whether re-scoring skipped flags on second attempt is allowed and at what point value.
 - [ ] **Daily Challenge** — same seed for all players, one attempt per day. Highest-leverage retention feature.
 - [ ] **Results screen celebration** — animation on star reveal, personal best highlight
 
@@ -210,8 +217,11 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 
 ### Design / balance
 - [ ] Score pop font size should scale with multiplier tier — at 2× it should be noticeably larger
-- [ ] Leaderboard should rank by score, not time
+- [x] Leaderboard now ranks by score descending
 - [ ] Leaderboard currently local-only — no cross-device or cross-player visibility
+- [ ] ⚠️ **Skip exploit — fix before shared leaderboard ships.** A player who spam-skips all flags in 30 seconds receives a near-maximum speed bonus with 0 flag score. Recommended fix: multiply speed bonus by `(correctCount / shuffled.length)` so skipping half the flags halves the bonus. Skipping everything = 0 bonus. Panel consensus: high priority.
+- [ ] **Speed bonus MAX not scaling with mode** — `MAX_BONUS` is fixed at 5,000 across all pool sizes. Oceania (14 flags) speed bonus can dwarf the flag score entirely. Fix: scale `MAX_BONUS` by `flagCount / 193` (same formula as star rating thresholds). Pending design confirmation before implementing.
+- [ ] **Uncapped speed bonus** — Peter wants the bonus to approach infinity as time approaches zero, not a fixed cap. Needs dedicated design session: new formula, recalibrated star thresholds, new benchmark scores. Do not implement without discussion.
 
 ---
 
