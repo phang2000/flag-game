@@ -417,6 +417,8 @@
   .feedback-label.correct { color: var(--correct); }
   .feedback-label.wrong { color: var(--wrong); }
   .feedback-label.close { color: var(--close); }
+  .feedback-label .diff-match { color: var(--close); }
+  .feedback-label .diff-fix { color: var(--correct); font-weight: 800; }
 
   /* card action buttons */
   .card-actions {
@@ -1513,6 +1515,50 @@ function levenshtein(a, b) {
   return dp[m][n];
 }
 
+// Build an HTML spelling hint showing the correct name with mistakes highlighted in green.
+// Finds the longest common normalised prefix between what was typed and the correct answer,
+// then highlights everything from the first mistake onwards in the original (un-normalised) name.
+function buildSpellingHint(typedRaw, flag) {
+  const normTyped = normalise(typedRaw);
+
+  // Pick the closest target (name or alt)
+  let bestOrig = flag.name;
+  let bestNorm = normalise(flag.name);
+  let bestDist = levenshtein(normTyped, bestNorm);
+  for (const alt of flag.alt) {
+    const n = normalise(alt);
+    const d = levenshtein(normTyped, n);
+    if (d < bestDist) { bestDist = d; bestNorm = n; bestOrig = alt; }
+  }
+
+  // Find length of longest common normalised prefix
+  let normPrefixLen = 0;
+  while (normPrefixLen < normTyped.length && normPrefixLen < bestNorm.length &&
+         normTyped[normPrefixLen] === bestNorm[normPrefixLen]) {
+    normPrefixLen++;
+  }
+
+  // Map normalised prefix length back to original string position.
+  // Walk bestOrig char by char; a char "counts" toward normalised length only if
+  // normalise() produces a non-empty string for it (i.e. not a stripped accent/punctuation).
+  let normCount = 0, splitPos = 0;
+  for (let i = 0; i < bestOrig.length && normCount < normPrefixLen; i++) {
+    if (normalise(bestOrig[i]).length > 0) normCount++;
+    splitPos = i + 1;
+  }
+
+  const matchPart = bestOrig.slice(0, splitPos);
+  const fixPart   = bestOrig.slice(splitPos);
+
+  if (!fixPart) {
+    // whole name matched at prefix level — player added extra chars; show full name as fix
+    return '<span class="diff-fix">' + bestOrig + '</span>';
+  }
+
+  const matchHtml = matchPart ? '<span class="diff-match">' + matchPart + '</span>' : '';
+  return matchHtml + '<span class="diff-fix">' + fixPart + '</span>';
+}
+
 // Known single-token abbreviations that are always acceptable
 const ABBREVS = new Set(['usa','us','uk','uae','png','drc','car','ksa','rsa','roc','dprk','fsm','nz','eu']);
 
@@ -1720,7 +1766,7 @@ function showFlag() {
   input.className = 'answer-input';
   inputLocked = false;
 
-  document.getElementById('feedback-label').textContent = '';
+  document.getElementById('feedback-label').innerHTML = '';
   document.getElementById('feedback-label').className = 'feedback-label';
 
   const pct = (currentIndex / shuffled.length) * 100;
@@ -1766,7 +1812,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputLocked || awaitingAdvance) return;
     input.classList.remove('state-wrong', 'state-close', 'state-correct', 'shake');
     const fb = document.getElementById('feedback-label');
-    fb.textContent = '';
+    fb.innerHTML = '';
     fb.className = 'feedback-label';
   });
 
@@ -1823,7 +1869,7 @@ function submitAnswer() {
     awaitingAdvance = false;
     input.classList.remove('state-close');
     const fb = document.getElementById('feedback-label');
-    fb.textContent = '';
+    fb.innerHTML = '';
     fb.className = 'feedback-label';
     currentIndex++;
     showFlag();
@@ -1845,7 +1891,7 @@ function submitAnswer() {
     currentScore += pts;
 
     const fb = document.getElementById('feedback-label');
-    fb.textContent = 'Almost! (+' + pts + ') — press Enter to continue';
+    fb.innerHTML = 'Almost! (+' + pts + ') · ' + buildSpellingHint(input.value, flag) + ' — press Enter';
     fb.className = 'feedback-label close';
     closeCount++;
     correctCount++;
@@ -1880,7 +1926,7 @@ function triggerWrong() {
   feedbackTimeout = setTimeout(() => {
     input.classList.remove('state-wrong');
     input.classList.remove('shake');
-    fb.textContent = '';
+    fb.innerHTML = '';
     fb.className = 'feedback-label';
   }, 600);
 }
