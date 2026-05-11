@@ -1101,8 +1101,23 @@
 
   <div class="results-actions">
     <button class="btn-secondary" onclick="showScreen('home')">Home</button>
-    <button class="btn-secondary" id="share-btn" onclick="shareResult()">Share 🔗</button>
+    <button class="btn-secondary" id="share-btn" onclick="shareResult()">Share result</button>
     <button class="btn-primary" onclick="openModeSelect()">Play again →</button>
+  </div>
+</div>
+
+<!-- Share card modal -->
+<div id="share-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+  <div style="background:#fff; border-radius:16px; padding:1.5rem; max-width:660px; width:100%; box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <span style="font-family:'Nunito',sans-serif; font-weight:700; font-size:1rem; color:#1A1814;">Your result</span>
+      <button onclick="closeShareModal()" style="background:none; border:none; cursor:pointer; font-size:1.3rem; color:#9C9890; line-height:1;">✕</button>
+    </div>
+    <canvas id="share-canvas" style="width:100%; height:auto; border-radius:8px; border:1px solid #E8E4DC; display:block;"></canvas>
+    <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+      <button class="btn-primary" onclick="downloadShareCard()" style="flex:1;">Download image</button>
+      <button id="share-native-btn" class="btn-secondary" onclick="nativeShare()" style="display:none;">Share →</button>
+    </div>
   </div>
 </div>
 
@@ -1323,8 +1338,9 @@ let inputLocked = false;
 let awaitingAdvance = false;
 let currentContinent = null;
 
-// ── LAST RUN (for share button) ──
+// ── LAST RUN (for share card) ──
 let _lastRunScore = 0, _lastRunMs = 0, _lastRunStars = 0, _lastRunStreak = 0;
+let _lastRunCorrect = 0, _lastRunTotal = 0, _lastRunContinent = null;
 
 // ── SCORING STATE ──
 let currentScore = 0;
@@ -2001,6 +2017,9 @@ function endGame() {
   _lastRunMs = totalMs;
   _lastRunStars = stars;
   _lastRunStreak = bestStreak;
+  _lastRunCorrect = correctCount + closeCount;
+  _lastRunTotal = shuffled.length;
+  _lastRunContinent = currentContinent;
 
   const regionKey = currentContinent || 'all';
   const isRegionNewBest = updateRegionBest(regionKey, totalMs);
@@ -2101,18 +2120,135 @@ function endGame() {
   showScreen('results');
 }
 
-function shareResult() {
-  const btn = document.getElementById('share-btn');
+// ── SHARE CARD ──
+async function shareResult() {
+  const modal = document.getElementById('share-modal');
+  modal.style.display = 'flex';
+  await generateShareCard();
+  const nativeBtn = document.getElementById('share-native-btn');
+  try {
+    const canvas = document.getElementById('share-canvas');
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    const file = new File([blob], 'flagrush-score.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      nativeBtn.style.display = 'inline-block';
+    }
+  } catch(e) {}
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').style.display = 'none';
+}
+
+function downloadShareCard() {
+  const canvas = document.getElementById('share-canvas');
+  const a = document.createElement('a');
+  a.download = 'flagrush-score.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+async function nativeShare() {
+  const canvas = document.getElementById('share-canvas');
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], 'flagrush-score.png', { type: 'image/png' });
+    try { await navigator.share({ files: [file], title: 'Flag Rush' }); } catch(e) {}
+  }, 'image/png');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+async function generateShareCard() {
+  await document.fonts.ready;
+  const canvas = document.getElementById('share-canvas');
+  canvas.width = 1200;
+  canvas.height = 630;
+  const ctx = canvas.getContext('2d');
+
+  // Outer background
+  ctx.fillStyle = '#F7F5F0';
+  ctx.fillRect(0, 0, 1200, 630);
+
+  // White card inset
+  roundRect(ctx, 40, 40, 1120, 550, 16);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = '#E8E4DC';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Branding — "🚩 Flag" (dark) + "Rush" (purple)
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 36px "Nunito", sans-serif';
+  ctx.fillStyle = '#1A1814';
+  const flagText = '🚩 Flag';
+  ctx.fillText(flagText, 80, 112);
+  const logoOffset = ctx.measureText(flagText).width;
+  ctx.fillStyle = '#5B4FCF';
+  ctx.fillText('Rush', 80 + logoOffset, 112);
+
+  // Mode label (top right)
+  const modeLabel = _lastRunContinent || 'All Flags';
+  ctx.font = '600 26px "Nunito", sans-serif';
+  ctx.fillStyle = '#9C9890';
+  ctx.textAlign = 'right';
+  ctx.fillText(modeLabel, 1120, 112);
+  ctx.textAlign = 'left';
+
+  // Hero score
+  ctx.font = '800 88px "Nunito", sans-serif';
+  ctx.fillStyle = '#1A1814';
+  ctx.textAlign = 'center';
+  ctx.fillText(_lastRunScore.toLocaleString() + ' pts', 600, 275);
+
+  // Stars
   const starStr = '★'.repeat(_lastRunStars) + '☆'.repeat(5 - _lastRunStars);
-  const text = '🚩 Flag Rush — ' + _lastRunScore.toLocaleString() + ' pts ' + starStr +
-               ' | ' + formatTimeMs(_lastRunMs) + ' | ' + _lastRunStreak + '× streak';
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = 'Copied! ✓';
-    setTimeout(() => { btn.textContent = 'Share 🔗'; }, 2000);
-  }).catch(() => {
-    btn.textContent = 'Copy failed';
-    setTimeout(() => { btn.textContent = 'Share 🔗'; }, 2000);
+  ctx.font = '600 44px "Nunito", sans-serif';
+  ctx.fillStyle = '#D4900A';
+  ctx.fillText(starStr, 600, 340);
+
+  // Divider
+  ctx.strokeStyle = '#E8E4DC';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(80, 385); ctx.lineTo(1120, 385);
+  ctx.stroke();
+
+  // Stats row
+  const stats = [
+    { value: formatTimeMs(_lastRunMs), label: 'TIME' },
+    { value: _lastRunStreak + '×',    label: 'STREAK' },
+    { value: _lastRunCorrect + ' / ' + _lastRunTotal, label: 'ANSWERED' },
+  ];
+  stats.forEach((s, i) => {
+    const x = 200 + i * 400;
+    ctx.font = '800 50px "Nunito", sans-serif';
+    ctx.fillStyle = '#1A1814';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.value, x, 470);
+    ctx.font = '600 20px "Nunito", sans-serif';
+    ctx.fillStyle = '#9C9890';
+    ctx.fillText(s.label, x, 505);
   });
+
+  // Footer
+  ctx.font = '500 22px "Nunito", sans-serif';
+  ctx.fillStyle = '#C0BCB8';
+  ctx.textAlign = 'right';
+  ctx.fillText('flagrush.com', 1120, 567);
+  ctx.textAlign = 'left';
 }
 
 </script>
