@@ -197,12 +197,12 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 ### Immediate bugs
 - [x] **Close answer auto-advance** — fixed. Now uses `awaitingAdvance` flag; player presses Enter to advance. Feedback label shows correct spelling with diff highlight.
 
-### Phase 2 — UX polish (not yet built)
-- [ ] Replace native `confirm()` quit dialog with custom in-game overlay card
-- [ ] First-time onboarding hint (one example flag + explanation of correct/close/wrong)
-- [ ] Continent mode entry point more prominent on home screen
-- [ ] **Enter key on home screen** — pressing Enter on the login screen should start the game (same as clicking "Start game"). If no name entered, show inline nudge rather than proceeding as Anonymous.
-- [ ] **End-of-run skipped flags review** — after a run with skips, show a read-only scroll of the flags missed with their names revealed. No re-scoring — just closure and memory reinforcement. Lighter than Practice Mode, could ship in Phase 2.
+### Phase 2 — UX polish
+- [x] **Custom quit dialog** — replaces native `confirm()`. Timer pauses while open, resumes on "Keep playing". Uses CSS design tokens (dark mode safe).
+- [x] **First-time onboarding hint** — one-time modal on first visit. Three colour-coded rows: Perfect (green, 100pts) / Close (amber, 60pts) / Revealed (purple, 20pts) + streak multiplier note. Dismissed with "Got it, let's play →". Stored in `flagrush_onboarded` localStorage key, never shown again.
+- [x] **Enter key on home screen** — pressing Enter starts the game. If no name entered, shows inline nudge rather than proceeding as Anonymous.
+- [x] **Skipped flags review** — shown on results screen when `missedFlags.length > 0`. Scrollable list (max-height 280px) with flag image, country name, and SKIPPED (red) / REVEALED (amber) badge. Hidden entirely on clean runs. Section title: "Skipped flags".
+- [ ] **Continent mode entry point** — deferred to home screen redesign (see Pre-launch design overhauls).
 
 ### Phase 3 — Engagement (not yet built)
 - [ ] **Practice mode** — use `flagrush_missed` localStorage data to drill the flags the player struggled with. Data is already being collected.
