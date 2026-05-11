@@ -970,6 +970,7 @@
       <div class="username-wrap">
         <span class="field-label">Your name</span>
         <input class="username-input" id="username-input" type="text" placeholder="Enter a display name" maxlength="20" autocomplete="off" />
+        <p id="username-nudge" style="margin:0.3rem 0 0; font-size:0.8rem; color:var(--wrong); opacity:0; transition:opacity 0.3s; min-height:1rem;">Enter your name to continue</p>
       </div>
 
       <button class="btn-primary" onclick="openModeSelect()">Start game →</button>
@@ -1100,6 +1101,7 @@
 
   <div class="results-actions">
     <button class="btn-secondary" onclick="showScreen('home')">Home</button>
+    <button class="btn-secondary" id="share-btn" onclick="shareResult()">Share 🔗</button>
     <button class="btn-primary" onclick="openModeSelect()">Play again →</button>
   </div>
 </div>
@@ -1320,6 +1322,9 @@ let feedbackTimeout = null;
 let inputLocked = false;
 let awaitingAdvance = false;
 let currentContinent = null;
+
+// ── LAST RUN (for share button) ──
+let _lastRunScore = 0, _lastRunMs = 0, _lastRunStars = 0, _lastRunStreak = 0;
 
 // ── SCORING STATE ──
 let currentScore = 0;
@@ -1824,6 +1829,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   initHome();
+
+  // Enter key on home screen name input
+  document.getElementById('username-input').addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    if (!this.value.trim()) {
+      const nudge = document.getElementById('username-nudge');
+      nudge.style.opacity = '1';
+      setTimeout(() => { nudge.style.opacity = '0'; }, 2000);
+      return;
+    }
+    openModeSelect();
+  });
 });
 
 function handleCorrect() {
@@ -1980,6 +1997,10 @@ function endGame() {
   const speedBonus = Math.round(calcSpeedBonus(totalMs, shuffled.length) * completionRatio);
   const finalScore = currentScore + speedBonus;
   const stars = getStarRating(finalScore, shuffled.length);
+  _lastRunScore = finalScore;
+  _lastRunMs = totalMs;
+  _lastRunStars = stars;
+  _lastRunStreak = bestStreak;
 
   const regionKey = currentContinent || 'all';
   const isRegionNewBest = updateRegionBest(regionKey, totalMs);
@@ -2079,6 +2100,21 @@ function endGame() {
 
   showScreen('results');
 }
+
+function shareResult() {
+  const btn = document.getElementById('share-btn');
+  const starStr = '★'.repeat(_lastRunStars) + '☆'.repeat(5 - _lastRunStars);
+  const text = '🚩 Flag Rush — ' + _lastRunScore.toLocaleString() + ' pts ' + starStr +
+               ' | ' + formatTimeMs(_lastRunMs) + ' | ' + _lastRunStreak + '× streak';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied! ✓';
+    setTimeout(() => { btn.textContent = 'Share 🔗'; }, 2000);
+  }).catch(() => {
+    btn.textContent = 'Copy failed';
+    setTimeout(() => { btn.textContent = 'Share 🔗'; }, 2000);
+  });
+}
+
 </script>
 </body>
 </html>
