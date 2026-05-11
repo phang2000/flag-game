@@ -333,6 +333,69 @@
 
   .quit-btn:hover { color: var(--wrong); background: var(--wrong-bg); }
 
+  /* ── QUIT DIALOG ── */
+  .quit-dialog-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .quit-dialog-overlay.is-open { display: flex; }
+
+  .quit-dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem 1.5rem 1.5rem;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+  }
+
+  .quit-dialog-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.02em;
+  }
+
+  .quit-dialog-sub {
+    font-size: 0.88rem;
+    color: var(--text2);
+    font-weight: 500;
+    margin-bottom: 1.25rem;
+  }
+
+  .quit-dialog-actions {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .quit-dialog-actions .btn-primary { flex: 1; }
+
+  .btn-danger {
+    padding: 0.65rem 1.1rem;
+    border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    background: var(--wrong-bg);
+    color: var(--wrong);
+    border: 1px solid transparent;
+  }
+
+  .btn-danger:hover { background: var(--wrong); color: white; }
+
   /* flag card */
   .flag-card {
     background: var(--surface);
@@ -1173,6 +1236,18 @@
     <div style="display:flex; gap:0.75rem; margin-top:1rem;">
       <button class="btn-primary" onclick="downloadShareCard()" style="flex:1;">Download image</button>
       <button id="share-native-btn" class="btn-secondary" onclick="nativeShare()" style="display:none;">Share →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quit confirmation dialog -->
+<div id="quit-dialog" class="quit-dialog-overlay">
+  <div class="quit-dialog">
+    <div class="quit-dialog-title">Quit this run?</div>
+    <div class="quit-dialog-sub">Your progress will be lost.</div>
+    <div class="quit-dialog-actions">
+      <button class="btn-primary" onclick="closeQuitDialog()">Keep playing</button>
+      <button class="btn-danger" onclick="executeQuit()">Quit</button>
     </div>
   </div>
 </div>
@@ -2052,11 +2127,20 @@ function revealFlag() {
 }
 
 function confirmQuit() {
-  if (confirm('Quit this run? Your progress will be lost.')) {
-    clearInterval(timerInterval);
-    renderModeSelect();
-    showScreen('mode-select');
-  }
+  clearInterval(timerInterval); // pause timer while dialog is open
+  document.getElementById('quit-dialog').classList.add('is-open');
+}
+
+function closeQuitDialog() {
+  document.getElementById('quit-dialog').classList.remove('is-open');
+  startTimer(); // resume timer
+}
+
+function executeQuit() {
+  document.getElementById('quit-dialog').classList.remove('is-open');
+  clearInterval(timerInterval);
+  renderModeSelect();
+  showScreen('mode-select');
 }
 
 // ── END GAME ──
