@@ -219,6 +219,9 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 - [ ] **Share card visual polish** — card design is functional but rough. Needs: better typography hierarchy, colour/gradient treatment, possible flag emoji background pattern, stronger brand presence. Consider hiring a designer or using a design tool to mock up before implementing.
 - [ ] **Share card v2 (server-rendered)** — Vercel/Cloudflare OG image generation from a share URL. Best quality, requires backend. Plan for launch.
 
+### Pre-launch design overhauls
+- [ ] **Home screen full redesign** — current home screen is functional but not launch-quality. Needs a proper design pass: stronger brand moment, clearer mode entry points, leaderboard presentation, overall visual hierarchy. Treat as a design project (mockup first) rather than an incremental code change. Do not ship to a wider audience with the current home screen.
+
 ### Design / balance
 - [ ] Score pop font size should scale with multiplier tier — at 2× it should be noticeably larger
 - [x] Leaderboard now ranks by score descending
