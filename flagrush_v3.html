@@ -776,6 +776,114 @@
     color: var(--close);
   }
 
+  /* ── ONBOARDING ── */
+  .onboarding-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .onboarding-overlay.is-open { display: flex; }
+
+  .onboarding-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem 1.5rem 1.5rem;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .onboarding-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .onboarding-sub {
+    font-size: 0.85rem;
+    color: var(--text2);
+    font-weight: 500;
+    margin-bottom: 1.25rem;
+  }
+
+  .onboarding-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .onboarding-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+
+  .onboarding-row-icon {
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .onboarding-row-text {
+    flex: 1;
+  }
+
+  .onboarding-row-label {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .onboarding-row-desc {
+    font-size: 0.78rem;
+    color: var(--text2);
+    font-weight: 500;
+    margin-top: 1px;
+  }
+
+  .onboarding-row-pts {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  .onboarding-row.perfect { background: var(--correct-bg); border-color: var(--correct); }
+  .onboarding-row.perfect .onboarding-row-pts { color: var(--correct); }
+  .onboarding-row.close   { background: var(--close-bg);   border-color: var(--close);   }
+  .onboarding-row.close   .onboarding-row-pts { color: var(--close); }
+  .onboarding-row.reveal  { background: var(--accent-light); border-color: var(--accent); }
+  .onboarding-row.reveal  .onboarding-row-pts { color: var(--accent); }
+
+  .onboarding-streak-note {
+    font-size: 0.82rem;
+    color: var(--text2);
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    padding: 0.6rem 0.9rem;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+  }
+
+  .onboarding-streak-note strong { color: var(--accent); }
+
   /* ── RESPONSIVE ── */
   @media (max-width: 480px) {
     .logo { font-size: 2rem; }
@@ -1237,6 +1345,42 @@
       <button class="btn-primary" onclick="downloadShareCard()" style="flex:1;">Download image</button>
       <button id="share-native-btn" class="btn-secondary" onclick="nativeShare()" style="display:none;">Share →</button>
     </div>
+  </div>
+</div>
+
+<!-- First-time onboarding hint -->
+<div id="onboarding-overlay" class="onboarding-overlay">
+  <div class="onboarding-card">
+    <div class="onboarding-title">How it works</div>
+    <div class="onboarding-sub">You'll see a flag — type the country name. Every answer counts.</div>
+    <div class="onboarding-rows">
+      <div class="onboarding-row perfect">
+        <div class="onboarding-row-icon">✓</div>
+        <div class="onboarding-row-text">
+          <div class="onboarding-row-label">Perfect spelling</div>
+          <div class="onboarding-row-desc">Exact match on the first try</div>
+        </div>
+        <div class="onboarding-row-pts">100 pts</div>
+      </div>
+      <div class="onboarding-row close">
+        <div class="onboarding-row-icon">~</div>
+        <div class="onboarding-row-text">
+          <div class="onboarding-row-label">Close enough</div>
+          <div class="onboarding-row-desc">Near miss — press Enter to advance</div>
+        </div>
+        <div class="onboarding-row-pts">60 pts</div>
+      </div>
+      <div class="onboarding-row reveal">
+        <div class="onboarding-row-icon">👁</div>
+        <div class="onboarding-row-text">
+          <div class="onboarding-row-label">Revealed</div>
+          <div class="onboarding-row-desc">Used the reveal button</div>
+        </div>
+        <div class="onboarding-row-pts">20 pts</div>
+      </div>
+    </div>
+    <div class="onboarding-streak-note">🔥 Chain perfect &amp; close answers to build a <strong>streak multiplier</strong> — up to <strong>2×</strong> per flag</div>
+    <button class="btn-primary" style="width:100%;" onclick="dismissOnboarding()">Got it, let's play →</button>
   </div>
 </div>
 
@@ -1820,6 +1964,11 @@ function initHome() {
   }
 
   renderLeaderboard('home-leaderboard', lb, null);
+
+  // Show onboarding hint on first visit
+  try {
+    if (!localStorage.getItem('flagrush_onboarded')) showOnboarding();
+  } catch(e) {}
 }
 
 function renderLeaderboard(elId, lb, highlightUser) {
@@ -2124,6 +2273,16 @@ function revealFlag() {
     missedFlags.push({ code: flag.code, name: flag.name, reason: 'revealed' });
   }
   updateStreakHUD();
+}
+
+// ── ONBOARDING ──
+function showOnboarding() {
+  document.getElementById('onboarding-overlay').classList.add('is-open');
+}
+
+function dismissOnboarding() {
+  document.getElementById('onboarding-overlay').classList.remove('is-open');
+  try { localStorage.setItem('flagrush_onboarded', '1'); } catch(e) {}
 }
 
 function confirmQuit() {
