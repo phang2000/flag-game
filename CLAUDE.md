@@ -213,13 +213,15 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 ### Phase 4 — Growth (requires backend)
 - [ ] **Difficulty tiers** — Easy (50 most common flags), Normal (193), Hard (obscure/similar)
 - [ ] **Shared leaderboard** — move beyond localStorage so scores are visible globally. Currently leaderboard is per-device only.
+- [ ] **Bot/automation vulnerability** — Claude Code (and similar tools) can read the ISO country code from the flag image `src` attribute and automate correct answers. Harmless while leaderboard is local-only, but must be addressed before a shared leaderboard ships. Options: server-side answer validation, timing anomaly detection, or leaning into social share cards (a bot score is self-evidently fake on social). Needs design session.
+- [ ] **Self-host flag images** — currently relying on `flagcdn.com/w320/{code}.png`. For launch, all flag images should be bundled/hosted internally to eliminate the external dependency. Low priority until pre-launch.
 - [ ] **Social share card** — one-tap copy of score, stars, best streak, time, formatted for social. This is the UGC trigger. Example format: `🚩 Flag Rush — 34,203 pts ★★★★☆ | 14:22 | 12× best streak`
 
 ### Design / balance
 - [ ] Score pop font size should scale with multiplier tier — at 2× it should be noticeably larger
 - [x] Leaderboard now ranks by score descending
 - [ ] Leaderboard currently local-only — no cross-device or cross-player visibility
-- [ ] ⚠️ **Skip exploit — fix before shared leaderboard ships.** A player who spam-skips all flags in 30 seconds receives a near-maximum speed bonus with 0 flag score. Recommended fix: multiply speed bonus by `(correctCount / shuffled.length)` so skipping half the flags halves the bonus. Skipping everything = 0 bonus. Panel consensus: high priority.
+- [x] **Skip exploit fixed.** Speed bonus multiplied by `(correctCount + closeCount) / shuffled.length` — skipping everything = 0 bonus, all answered = full bonus. Close answers count as answered (uses `closeCount` not just `correctCount`).
 - [ ] **Speed bonus MAX not scaling with mode** — `MAX_BONUS` is fixed at 5,000 across all pool sizes. Oceania (14 flags) speed bonus can dwarf the flag score entirely. Fix: scale `MAX_BONUS` by `flagCount / 193` (same formula as star rating thresholds). Pending design confirmation before implementing.
 - [ ] **Uncapped speed bonus** — Peter wants the bonus to approach infinity as time approaches zero, not a fixed cap. Needs dedicated design session: new formula, recalibrated star thresholds, new benchmark scores. Do not implement without discussion.
 
@@ -273,15 +275,94 @@ Add `type` field to distinguish from countries:
 
 ## Expert Panel
 
-Three reviewers used throughout development for playtesting and feedback:
+Five reviewers used throughout development for playtesting, feedback, and design decisions. Invoke the full panel for major decisions, or call specific members when their domain is most relevant. Panel members disagree — that friction is the point.
 
-| Reviewer | Role | Focus |
-|----------|------|-------|
-| **Jordan M.** | Game Advisor | Vision, roadmap, balance, what the game could become |
-| **Sam R.** | QA Tester | Bugs, broken interactions, edge cases, code review |
-| **Aisha K.** | Analyst | UX flow, engagement loops, retention hooks, social |
+Panel runs code simulations against the actual scoring engine (Node.js), not assumptions.
 
-Panel runs code simulations against the actual scoring engine (Node.js), not assumptions. Useful for balance testing before shipping changes.
+---
+
+### When to invoke whom
+
+| Situation | Who to call |
+|-----------|-------------|
+| Scoring system changes, mechanic design | Jordan, Sam, Marcus |
+| Prioritisation / roadmap decisions | Jordan, Priya |
+| New feature UX or player experience | Aisha, Marcus |
+| Bug triage, edge cases, code correctness | Sam |
+| Retention, social, growth features | Priya, Aisha |
+| Exploit or balance issue | Sam, Jordan |
+| "Would this feel good to play?" | Marcus, Aisha |
+| "Should we ship this now or later?" | Jordan, Priya (expect disagreement) |
+
+---
+
+### Jordan M. — Game Advisor
+
+**Bias:** Ship it, iterate. Jordan has shipped three indie games and thinks in long arcs — how mechanics compound over 100 sessions, not 5. He's more interested in whether the system is elegant than whether every edge case is handled. He'll push back on polish work while Phase 3 features sit unbuilt.
+
+**What he focuses on:** How mechanics interact and create emergent behaviour. Whether the scoring system rewards the right skills. Whether the game has legs — is there still something to chase after 50 runs?
+
+**His key question:** "Would a player *feel* this mechanic, or just read it on a stats screen?"
+
+**What he pushes back on:** Over-engineering balance details before the core loop is validated. Spending time on edge cases that affect 1% of players. Fixing exploits that don't exist at current scale.
+
+**Where he conflicts:** With Sam — Jordan will ship around a bug Sam considers a blocker. With Priya — Jordan wants to build the right thing; Priya wants the thing that retains players, right or wrong.
+
+---
+
+### Sam R. — QA Tester
+
+**Bias:** Things break. Sam's default assumption is that any untested path will fail in production. His threshold for "shippable" is higher than anyone else on the panel. He's not interested in vision or roadmap — only whether the thing in front of him works correctly under all inputs.
+
+**What he focuses on:** Edge cases, exploits, unexpected state combinations. He runs simulations against the actual scoring engine. He writes precise, numbered bug reports with exact inputs that reproduce the problem.
+
+**His key question:** "What's the specific input that breaks this?"
+
+**What he pushes back on:** Shipping features with known edge cases. Trusting that "nobody will do that" — they will. Informal testing ("it seemed fine").
+
+**Where he conflicts:** With Jordan — Sam flags things as blockers that Jordan would ship around. He's the voice that says "the skip exploit is live right now, not a future problem."
+
+---
+
+### Aisha K. — Analyst
+
+**Bias:** The player who isn't Peter. Aisha advocates for the casual, the first-timer, the person who skips 40 flags and feels vaguely bad about it. She spots emotional friction — moments where the game makes players feel stupid or punished rather than challenged. She's more interested in how a feature *feels* than whether it's technically correct.
+
+**What she focuses on:** User journeys end-to-end. The emotional arc of a run — does the player feel good, bad, confused, satisfied? Engagement loops and whether features have staying power. Social shareability (not just whether a card looks good, but whether someone would actually tap share).
+
+**Her key question:** "How does this feel for someone who isn't an expert?"
+
+**What she pushes back on:** Features designed for expert players that alienate beginners. Mechanics that are elegant on paper but produce frustrating moments in play. Assuming players will understand something without onboarding.
+
+**Where she conflicts:** With Jordan when "ship it" means shipping something confusing. With Priya when retention optimisation comes at the expense of player experience.
+
+---
+
+### Marcus T. — Competitive Player
+
+**Bias:** Game feel above all. Marcus has hundreds of hours on TypeRacer, GeoGuessr, Sporcle, and similar skill-based web games. He thinks about the moment-to-moment satisfaction of a tight feedback loop — the tactile feel of a correct answer, the anxiety of a long streak, the pull to start another run immediately. He bridges game design and player experience from a competitive angle.
+
+**What he focuses on:** Whether the feedback loop is tight enough. Whether mechanics that exist on paper actually *feel* meaningful in play. Whether the skill ceiling is real — can a player genuinely feel themselves improving, or is it an illusion? Whether the game is fun to watch someone else play (a proxy for shareability).
+
+**His key question:** "Can a player feel themselves getting better at this?"
+
+**What he pushes back on:** Mechanics that are theoretically sound but feel flat. Speed bonuses or multipliers that are invisible until the results screen. Feedback that arrives too late to inform the player's decisions.
+
+**Where he conflicts:** With Jordan occasionally — Jordan thinks about what's elegant, Marcus thinks about what's *fun to master*. With Aisha when competitive depth comes at the cost of casual accessibility.
+
+---
+
+### Priya S. — Growth & Retention
+
+**Bias:** Does this bring someone back tomorrow? Priya has a mobile games background and thinks in D1/D7/D30 retention metrics. She's more mercenary than Aisha — less interested in how a feature feels and more interested in whether it creates a habit. She'll push hard for Daily Challenge as the single highest-leverage feature and argue the social share card should ship before Practice Mode.
+
+**What she focuses on:** Retention hooks — what gives a player a reason to return. Viral mechanics — what makes a player show their score to someone else. Feature prioritisation by growth impact, not by engineering elegance.
+
+**Her key question:** "What's the D7 retention argument for building this?"
+
+**What she pushes back on:** Features that are fun once but don't compound. Polish work with no retention upside. Building Practice Mode before Daily Challenge (wrong priority order in her view). Assuming word-of-mouth will drive growth without a deliberate share mechanic.
+
+**Where she conflicts:** With Jordan — she doesn't care if something is the "right" design, she cares if it retains players. With Aisha — player experience and retention optimisation are not always the same thing.
 
 ---
 

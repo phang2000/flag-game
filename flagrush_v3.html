@@ -1976,7 +1976,8 @@ function endGame() {
 
   const totalMs = elapsedMs;
   const avgMs = correctCount > 0 ? Math.round(totalMs / correctCount) : 0;
-  const speedBonus = calcSpeedBonus(totalMs, shuffled.length);
+  const completionRatio = shuffled.length > 0 ? (correctCount + closeCount) / shuffled.length : 0;
+  const speedBonus = Math.round(calcSpeedBonus(totalMs, shuffled.length) * completionRatio);
   const finalScore = currentScore + speedBonus;
   const stars = getStarRating(finalScore, shuffled.length);
 
