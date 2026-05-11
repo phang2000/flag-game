@@ -215,7 +215,9 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 - [ ] **Shared leaderboard** — move beyond localStorage so scores are visible globally. Currently leaderboard is per-device only.
 - [ ] **Bot/automation vulnerability** — Claude Code (and similar tools) can read the ISO country code from the flag image `src` attribute and automate correct answers. Harmless while leaderboard is local-only, but must be addressed before a shared leaderboard ships. Options: server-side answer validation, timing anomaly detection, or leaning into social share cards (a bot score is self-evidently fake on social). Needs design session.
 - [ ] **Self-host flag images** — currently relying on `flagcdn.com/w320/{code}.png`. For launch, all flag images should be bundled/hosted internally to eliminate the external dependency. Low priority until pre-launch.
-- [ ] **Social share card** — one-tap copy of score, stars, best streak, time, formatted for social. This is the UGC trigger. Example format: `🚩 Flag Rush — 34,203 pts ★★★★☆ | 14:22 | 12× best streak`
+- [x] **Social share card (v1)** — Canvas-generated 1200×630 PNG. Modal preview, Download button, native share sheet on mobile. Data and layout correct. Visual design needs significant polish before launch.
+- [ ] **Share card visual polish** — card design is functional but rough. Needs: better typography hierarchy, colour/gradient treatment, possible flag emoji background pattern, stronger brand presence. Consider hiring a designer or using a design tool to mock up before implementing.
+- [ ] **Share card v2 (server-rendered)** — Vercel/Cloudflare OG image generation from a share URL. Best quality, requires backend. Plan for launch.
 
 ### Design / balance
 - [ ] Score pop font size should scale with multiplier tier — at 2× it should be noticeably larger
