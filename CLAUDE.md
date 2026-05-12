@@ -13,11 +13,13 @@ Flag Rush is a single-page flag identification game with ambitions to become the
 
 ## Current State
 
-- **Source file:** `flagrush_v3.html` — single self-contained HTML/CSS/JS file, ~2,020 lines
+- **Source file:** `flagrush_v3.html` — single self-contained HTML/CSS/JS file, ~2,250 lines
 - **193 flags** covering all sovereign nations, grouped by continent
 - **Two play modes:** All flags (193) or by continent (Africa, Americas, Asia, Europe, Oceania)
 - **Persistence:** localStorage for leaderboard, recent runs, region bests, missed flags, username
 - **Theming:** Light/dark toggle, CSS custom properties throughout
+- **Deployed:** Vercel via GitHub push to `main`. Latest commit: `660eb47`
+- **Demo file:** `demo_animations.html` — standalone animation sandbox in same folder, safe to delete
 
 ---
 
@@ -137,6 +139,16 @@ let missedFlags = [];       // flags skipped or revealed — for Practice mode (
 let currentUser = '';
 let feedbackTimeout = null;
 let inputLocked = false;
+let awaitingAdvance = false; // true after close answer — next Enter advances rather than submits
+
+// Animation state
+let _lastStreakTier = 0;    // 0=none, 1=1.2×, 2=1.5×, 3=2× — tracks tier for shimmer/break animations
+                             // ⚠️ capture BEFORE calling updateStreakHUD() if you need prev value
+let revealAutoTimer = null; // setTimeout handle for reveal auto-advance — clear in skipFlag + startGame
+
+// Share card (end of run)
+let _lastRunScore = 0, _lastRunMs = 0, _lastRunStars = 0, _lastRunStreak = 0;
+let _lastRunCorrect = 0, _lastRunTotal = 0, _lastRunContinent = null;
 ```
 
 ---
@@ -173,7 +185,18 @@ let inputLocked = false;
 - `#feedback-label` — "✓ Correct!", "Almost… check your spelling", "Not quite — keep trying"
 
 ### Score pop animation
-Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purple for close. Font scales with multiplier tier (to be implemented).
+Appended to `.flag-img-wrap`, rises from centre of flag. **Size and glow now scale with streak tier:**
+- `score-pop-tier-1x` — 1rem, no glow
+- `score-pop-tier-12x` — 1.3rem
+- `score-pop-tier-15x` — 1.65rem + soft text-shadow glow
+- `score-pop-tier-2x` — 2.1rem + bright glow (perfect goes to `#FF9F0A`, close gets purple halo)
+
+Gold (`var(--close)`) for perfect, purple (`var(--accent)`) for close. Tier class chosen by reading `currentStreak` at fire time inside `showScorePop()`.
+
+### Streak HUD
+Fixed height (`1.6rem`) — never shifts layout regardless of content. Pill background appears at tier 1+ (accent for 1.2×, amber for 1.5×/2×). Two animations:
+- **Tier-up shimmer** — shimmer sweep fires when `_lastStreakTier` increases. Class: `tier-up` (added then removed after 620ms)
+- **Streak-break** — red flash + shake when streak resets. Class: `streak-break`. `signalStreakBreak(prevTier)` re-adds the `active`/`hot` class so the animation fires ON the existing pill, not empty HUD. ⚠️ Always capture `_lastStreakTier` BEFORE calling `updateStreakHUD()` at the call site.
 
 ---
 
@@ -202,6 +225,11 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 - [x] **First-time onboarding hint** — one-time modal on first visit. Three colour-coded rows: Perfect (green, 100pts) / Close (amber, 60pts) / Revealed (purple, 20pts) + streak multiplier note. Dismissed with "Got it, let's play →". Stored in `flagrush_onboarded` localStorage key, never shown again.
 - [x] **Enter key on home screen** — pressing Enter starts the game. If no name entered, shows inline nudge rather than proceeding as Anonymous.
 - [x] **Skipped flags review** — shown on results screen when `missedFlags.length > 0`. Scrollable list (max-height 280px) with flag image, country name, and SKIPPED (red) / REVEALED (amber) badge. Hidden entirely on clean runs. Section title: "Skipped flags".
+- [x] **Score pop scales with multiplier tier** — size + glow increases at 1×/1.2×/1.5×/2×. See Score pop animation section.
+- [x] **Streak tier transition animation** — pill background + shimmer sweep on tier-up; red flash + shake on streak break. See Streak HUD section.
+- [x] **Auto-advance delay tightened** — correct answer advances at 250ms (was 400ms). Tighter loop at high streaks.
+- [x] **Reveal auto-advances** — after `revealFlag()`, game auto-advances after 1.2s. Enter skips the wait. `revealAutoTimer` manages this; cleared on skip and game restart. Streak-break signal also fires on reveal.
+- [x] **Streak-break micro-signal** — HUD flashes red + shakes on wrong answer, skip, or reveal. Fires on whichever pill exists (accent/amber) not on empty HUD.
 - [ ] **Continent mode entry point** — deferred to home screen redesign (see Pre-launch design overhauls).
 
 ### Phase 3 — Engagement (not yet built)
@@ -223,7 +251,7 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 - [ ] **Home screen full redesign** — current home screen is functional but not launch-quality. Needs a proper design pass: stronger brand moment, clearer mode entry points, leaderboard presentation, overall visual hierarchy. Treat as a design project (mockup first) rather than an incremental code change. Do not ship to a wider audience with the current home screen.
 
 ### Design / balance
-- [ ] Score pop font size should scale with multiplier tier — at 2× it should be noticeably larger
+- [x] Score pop font size scales with multiplier tier — implemented with size + glow (Option B)
 - [x] Leaderboard now ranks by score descending
 - [ ] Leaderboard currently local-only — no cross-device or cross-player visibility
 - [x] **Skip exploit fixed.** Speed bonus multiplied by `correctCount / shuffled.length` — skipping everything = 0 bonus, all answered = full bonus. Note: `correctCount` already includes both perfect AND close answers (both increment it), so `closeCount` is NOT added again here.
@@ -371,6 +399,44 @@ Panel runs code simulations against the actual scoring engine (Node.js), not ass
 
 ---
 
+## Marcus Playtest Review (Session — May 2026)
+
+Marcus did a full All-Flags competitive run after the animation changes. Key findings:
+
+### Signed off
+- Score pop scaling: *"That lands. I can feel the difference between 1× and 2× now."*
+- Streak break shake: *"Good — I felt every one I dropped."*
+- Reveal auto-advance: *"Fixed. No more sitting there waiting."*
+- Overall: *"The animations are doing real informational work now, not just decoration."*
+
+### Still open (not yet actioned)
+| Issue | Priority | Notes |
+|-------|----------|-------|
+| Wrong answer shakes input AND HUD simultaneously | Low | Two things shaking at once. Not bad, slightly noisy. Worth monitoring. |
+| No pace indicator during run | Phase 3 | "Am I ahead of my PB right now?" — even a faint "on pace for ★★★★" would create mid-run pressure. Highest ceiling on competitive experience. |
+| Wrong answer gives no closeness hint | Phase 2 | "Not quite — keep trying" is silent on how far off you were. TypeRacer shows the error char inline. Could at least distinguish "really close" vs "not even close". |
+
+---
+
+## Key Functions Reference
+
+### `showScorePop(pts, type)`
+Reads `currentStreak` to pick tier class. `type` is `'perfect'` or `'close'`.
+
+### `updateStreakHUD()`
+Updates HUD text + class. Fires `tier-up` shimmer when `_lastStreakTier` increases. Updates `_lastStreakTier`. ⚠️ Call sites that need prev tier must capture `_lastStreakTier` BEFORE calling this.
+
+### `signalStreakBreak(prevTier)`
+Re-adds `active` (tier 1) or `hot` (tier 2-3) class to HUD, then adds `streak-break` for red flash + shake. Cleans up after 460ms. Call AFTER `updateStreakHUD()`, pass captured `prevTier`.
+
+### `revealFlag()`
+Sets `awaitingAdvance = true` and starts `revealAutoTimer` (1200ms). Timer auto-advances on expiry. Enter also advances (clears timer via `submitAnswer` awaitingAdvance branch). `skipFlag()` and `startGame()` both clear `revealAutoTimer`.
+
+### `startGame(continent)`
+Must reset: `currentStreak = 0`, `bestStreak = 0`, `perfectCount = 0`, `_lastStreakTier = 0`, `clearTimeout(revealAutoTimer)`, `updateStreakHUD()`. All are currently present.
+
+---
+
 ## Benchmark Scores (for balance testing)
 
 | Scenario | Flag score | Speed bonus | Final | Stars |
@@ -444,5 +510,14 @@ Dark mode overrides all tokens via `[data-theme="dark"]`.
 
 ---
 
-*Generated from claude.ai session — May 2026*
+## Next Session — Recommended Starting Point
+
+1. **Push to Vercel** if not already done: `git push origin main` (latest local commit: `660eb47`)
+2. **Daily Challenge** — highest priority feature (Jordan + Priya consensus). Client-side only for v1: date-seeded shuffle (`new Date().toDateString()` as seed), localStorage gate (`flagrush_daily_{date}` key), one attempt per day, results shown on home screen. No backend needed.
+3. **Score pop audit** — verify `score-pop-tier-2x` glow looks right in light mode (was designed/tested in dark mode)
+4. **`demo_animations.html`** — can be deleted, choices are locked in (Pop B, HUD C)
+
+---
+
+*Last updated: May 2026 — session covering animation polish, Marcus playtest, feedback loop tightening*
 *Continue development in Claude Code. Paste this file at session start for full context.*
