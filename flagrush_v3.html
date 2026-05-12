@@ -1177,6 +1177,14 @@
     );
   }
 
+  @keyframes streakBreak {
+    0%   { color: var(--wrong); background-color: rgba(226,75,74,0.13); }
+    100% { color: var(--text3); background-color: transparent; }
+  }
+  .streak-hud.streak-break {
+    animation: streakBreak 0.45s ease forwards;
+  }
+
   /* ── SCORE POP ── */
   .flag-img-wrap {
     position: relative;
@@ -1788,6 +1796,15 @@ function updateLiveScore() {
 
 let _lastStreakTier = 0; // 0=none, 1=1.2×, 2=1.5×, 3=2×
 
+function signalStreakBreak() {
+  const el = document.getElementById('streak-hud');
+  if (!el) return;
+  el.classList.remove('streak-break');
+  void el.offsetWidth;
+  el.classList.add('streak-break');
+  setTimeout(() => el.classList.remove('streak-break'), 460);
+}
+
 function updateStreakHUD() {
   const el = document.getElementById('streak-hud');
   if (!el) return;
@@ -2351,8 +2368,10 @@ function submitAnswer() {
 }
 
 function triggerWrong() {
+  const hadStreak = currentStreak;
   currentStreak = 0;
   updateStreakHUD();
+  if (hadStreak > 0) signalStreakBreak();
 
   const input = document.getElementById('answer-input');
   input.classList.remove('shake');
@@ -2377,10 +2396,12 @@ function skipFlag() {
   awaitingAdvance = false;
   const flag = shuffled[currentIndex];
   skippedCount++;
+  const hadStreak = currentStreak;
   currentStreak = 0;
   splitTimes.push({ code: flag.code, name: flag.name, ms: null, skipped: true });
   missedFlags.push({ code: flag.code, name: flag.name, reason: 'skipped' });
   updateStreakHUD();
+  if (hadStreak > 0) signalStreakBreak();
   currentIndex++;
   showFlag();
 }
