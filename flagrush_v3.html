@@ -1133,8 +1133,12 @@
     transition: color 0.3s, background-color 0.3s;
     margin-top: -0.5rem;
     border-radius: 99px;
-    padding: 3px 12px; /* always reserved — prevents layout shift when pill appears */
+    padding: 3px 12px;
     background-color: transparent;
+    height: 1.6rem; /* fixed height — layout never shifts regardless of content */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .streak-hud.active {
     color: var(--accent);
