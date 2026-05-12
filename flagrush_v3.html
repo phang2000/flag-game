@@ -670,12 +670,26 @@
     color: var(--text);
   }
 
-  .lb-time {
+  .lb-score-wrap {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .lb-score {
     font-family: 'Nunito', sans-serif;
     font-weight: 800;
     font-size: 1rem;
     color: var(--accent);
     letter-spacing: -0.02em;
+    display: block;
+  }
+
+  .lb-time {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text3);
+    display: block;
+    margin-top: 1px;
   }
 
   .lb-empty {
@@ -1983,10 +1997,15 @@ function renderLeaderboard(elId, lb, highlightUser) {
     const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
     const hl = highlightUser && entry.name === highlightUser ? ' highlight' : '';
+    const scoreStr = entry.score ? entry.score.toLocaleString() + ' pts' : formatTimeMs(entry.timeMs);
+    const timeStr = entry.score ? formatTimeMs(entry.timeMs) : '';
     return `<div class="lb-row${hl}">
       <span class="lb-rank ${rankClass}">${medal}</span>
       <span class="lb-name">${entry.name}</span>
-      <span class="lb-time">${formatTimeMs(entry.timeMs)}</span>
+      <span class="lb-score-wrap">
+        <span class="lb-score">${scoreStr}</span>
+        ${timeStr ? `<span class="lb-time">${timeStr}</span>` : ''}
+      </span>
     </div>`;
   }).join('');
 }
