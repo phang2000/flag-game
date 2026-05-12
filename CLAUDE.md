@@ -118,11 +118,11 @@ let elapsedMs = 0;
 let flagStartTime = 0;
 
 // Counts
-let correctCount = 0;
+let correctCount = 0;   // ⚠️ incremented for BOTH perfect AND close answers — do not add closeCount on top of this
 let skippedCount = 0;
-let closeCount = 0;
+let closeCount = 0;     // subset of correctCount — close answers only
 let revealedCount = 0;
-let perfectCount = 0;
+let perfectCount = 0;   // subset of correctCount — perfect answers only (used for the Perfect stat tile)
 
 // Scoring
 let currentScore = 0;
@@ -226,7 +226,7 @@ Appended to `.flag-img-wrap`, rises from centre of flag, gold for perfect, purpl
 - [ ] Score pop font size should scale with multiplier tier — at 2× it should be noticeably larger
 - [x] Leaderboard now ranks by score descending
 - [ ] Leaderboard currently local-only — no cross-device or cross-player visibility
-- [x] **Skip exploit fixed.** Speed bonus multiplied by `(correctCount + closeCount) / shuffled.length` — skipping everything = 0 bonus, all answered = full bonus. Close answers count as answered (uses `closeCount` not just `correctCount`).
+- [x] **Skip exploit fixed.** Speed bonus multiplied by `correctCount / shuffled.length` — skipping everything = 0 bonus, all answered = full bonus. Note: `correctCount` already includes both perfect AND close answers (both increment it), so `closeCount` is NOT added again here.
 - [ ] **Speed bonus MAX not scaling with mode** — `MAX_BONUS` is fixed at 5,000 across all pool sizes. Oceania (14 flags) speed bonus can dwarf the flag score entirely. Fix: scale `MAX_BONUS` by `flagCount / 193` (same formula as star rating thresholds). Pending design confirmation before implementing.
 - [ ] **Uncapped speed bonus** — Peter wants the bonus to approach infinity as time approaches zero, not a fixed cap. Needs dedicated design session: new formula, recalibrated star thresholds, new benchmark scores. Do not implement without discussion.
 
