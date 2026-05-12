@@ -1128,22 +1128,21 @@
     font-size: 0.78rem;
     font-weight: 700;
     text-align: center;
-    min-height: 1.2rem;
     color: var(--text3);
     letter-spacing: 0.02em;
-    transition: color 0.3s, background-color 0.3s, padding 0.25s;
+    transition: color 0.3s, background-color 0.3s;
     margin-top: -0.5rem;
     border-radius: 99px;
+    padding: 3px 12px; /* always reserved — prevents layout shift when pill appears */
+    background-color: transparent;
   }
   .streak-hud.active {
     color: var(--accent);
     background-color: var(--accent-light);
-    padding: 3px 12px;
   }
   .streak-hud.hot {
     color: var(--close);
     background-color: rgba(212,144,10,0.13);
-    padding: 3px 12px;
   }
 
   @keyframes streakShimmer {
