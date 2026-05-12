@@ -731,6 +731,27 @@
     font-weight: 500;
   }
 
+  .section-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 0.6rem;
+  }
+
+  .section-toggle {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  .section-toggle:hover { opacity: 0.75; }
+
   .results-actions {
     display: flex;
     gap: 0.75rem;
@@ -1336,8 +1357,11 @@
   </div>
 
   <div style="width:100%;">
-    <p class="section-title" style="margin-bottom:0.6rem;">Your recent runs</p>
-    <div class="leaderboard" id="recent-runs"></div>
+    <div class="section-title-row">
+      <p class="section-title" style="margin:0;">Your recent runs</p>
+      <button class="section-toggle" id="recent-runs-toggle" onclick="toggleRecentRuns()">Show ▾</button>
+    </div>
+    <div class="leaderboard" id="recent-runs" style="display:none;"></div>
   </div>
 
   <div class="results-actions">
@@ -2296,6 +2320,15 @@ function revealFlag() {
   updateStreakHUD();
 }
 
+// ── RECENT RUNS TOGGLE ──
+function toggleRecentRuns() {
+  const el = document.getElementById('recent-runs');
+  const btn = document.getElementById('recent-runs-toggle');
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? 'Hide ▴' : 'Show ▾';
+}
+
 // ── ONBOARDING ──
 let _onboardingCallback = null;
 
@@ -2334,6 +2367,12 @@ function executeQuit() {
 // ── END GAME ──
 function endGame() {
   clearInterval(timerInterval);
+
+  // Reset recent runs section to collapsed state
+  const runsToggleEl = document.getElementById('recent-runs');
+  const runsToggleBtn = document.getElementById('recent-runs-toggle');
+  if (runsToggleEl) runsToggleEl.style.display = 'none';
+  if (runsToggleBtn) runsToggleBtn.textContent = 'Show ▾';
 
   const totalMs = elapsedMs;
   const avgMs = correctCount > 0 ? Math.round(totalMs / correctCount) : 0;
