@@ -1708,6 +1708,7 @@ let currentContinent = null;
 
 // ── LAST RUN (for share card) ──
 let _lastRunScore = 0, _lastRunMs = 0, _lastRunStars = 0, _lastRunStreak = 0;
+let revealAutoTimer = null;
 let _lastRunCorrect = 0, _lastRunTotal = 0, _lastRunContinent = null;
 
 // ── SCORING STATE ──
@@ -2147,6 +2148,8 @@ function startGame(continent) {
   bestStreak = 0;
   perfectCount = 0;
   _lastStreakTier = 0;
+  clearTimeout(revealAutoTimer);
+  revealAutoTimer = null;
   updateStreakHUD(); // reset HUD visually — without this, previous game's streak stays on screen
   const liveScoreEl = document.getElementById('live-score');
   if (liveScoreEl) liveScoreEl.textContent = '0';
@@ -2325,6 +2328,7 @@ function submitAnswer() {
   if (inputLocked) return;
   if (awaitingAdvance) {
     awaitingAdvance = false;
+    clearTimeout(revealAutoTimer);
     input.classList.remove('state-close');
     const fb = document.getElementById('feedback-label');
     fb.innerHTML = '';
@@ -2394,6 +2398,7 @@ function triggerWrong() {
 function skipFlag() {
   if (inputLocked) return;
   awaitingAdvance = false;
+  clearTimeout(revealAutoTimer);
   const flag = shuffled[currentIndex];
   skippedCount++;
   const hadStreak = currentStreak;
@@ -2410,9 +2415,13 @@ function revealFlag() {
   if (inputLocked) return;
   const wasClose = awaitingAdvance;
   awaitingAdvance = false;
+  clearTimeout(revealAutoTimer);
   if (!wasClose) {
     revealedCount++;
+    const hadStreak = currentStreak;
     currentStreak = 0;
+    updateStreakHUD();
+    if (hadStreak > 0) signalStreakBreak();
   }
   const flag = shuffled[currentIndex];
   const fb = document.getElementById('feedback-label');
@@ -2421,7 +2430,21 @@ function revealFlag() {
   if (!missedFlags.find(m => m.code === flag.code)) {
     missedFlags.push({ code: flag.code, name: flag.name, reason: 'revealed' });
   }
-  updateStreakHUD();
+
+  // auto-advance after 1.2s; pressing Enter skips the wait
+  awaitingAdvance = true;
+  revealAutoTimer = setTimeout(() => {
+    if (!awaitingAdvance) return;
+    awaitingAdvance = false;
+    const input = document.getElementById('answer-input');
+    input.value = '';
+    input.classList.remove('state-close');
+    fb.innerHTML = '';
+    fb.className = 'feedback-label';
+    currentIndex++;
+    showFlag();
+    input.focus();
+  }, 1200);
 }
 
 // ── RECENT RUNS TOGGLE ──
