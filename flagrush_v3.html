@@ -2171,6 +2171,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initHome();
 
+  // Escape key: close onboarding overlay or quit dialog
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const onboarding = document.getElementById('onboarding-overlay');
+    if (onboarding.classList.contains('is-open')) {
+      dismissOnboarding();
+      return;
+    }
+    const quitDialog = document.getElementById('quit-dialog');
+    if (quitDialog.classList.contains('is-open')) {
+      closeQuitDialog();
+    }
+  });
+
   // Enter key on home screen name input
   document.getElementById('username-input').addEventListener('keydown', function(e) {
     if (e.key !== 'Enter') return;
