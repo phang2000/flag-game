@@ -2017,6 +2017,7 @@ function startGame(continent) {
   currentStreak = 0;
   bestStreak = 0;
   perfectCount = 0;
+  updateStreakHUD(); // reset HUD visually — without this, previous game's streak stays on screen
   const liveScoreEl = document.getElementById('live-score');
   if (liveScoreEl) liveScoreEl.textContent = '0';
 
@@ -2308,7 +2309,8 @@ function endGame() {
 
   const totalMs = elapsedMs;
   const avgMs = correctCount > 0 ? Math.round(totalMs / correctCount) : 0;
-  const completionRatio = shuffled.length > 0 ? (correctCount + closeCount) / shuffled.length : 0;
+  // correctCount already includes close answers (both perfect and close increment it)
+  const completionRatio = shuffled.length > 0 ? correctCount / shuffled.length : 0;
   const speedBonus = Math.round(calcSpeedBonus(totalMs, shuffled.length) * completionRatio);
   const finalScore = currentScore + speedBonus;
   const stars = getStarRating(finalScore, shuffled.length);
@@ -2316,7 +2318,7 @@ function endGame() {
   _lastRunMs = totalMs;
   _lastRunStars = stars;
   _lastRunStreak = bestStreak;
-  _lastRunCorrect = correctCount + closeCount;
+  _lastRunCorrect = correctCount; // correctCount = perfect + close (close increments both)
   _lastRunTotal = shuffled.length;
   _lastRunContinent = currentContinent;
 
