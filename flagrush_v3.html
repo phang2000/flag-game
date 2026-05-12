@@ -1932,6 +1932,12 @@ function showScreen(id) {
 
 // ── MODE SELECT ──
 function openModeSelect() {
+  try {
+    if (!localStorage.getItem('flagrush_onboarded')) {
+      showOnboarding(() => openModeSelect());
+      return;
+    }
+  } catch(e) {}
   renderModeSelect();
   showScreen('mode-select');
 }
@@ -1978,11 +1984,6 @@ function initHome() {
   }
 
   renderLeaderboard('home-leaderboard', lb, null);
-
-  // Show onboarding hint on first visit
-  try {
-    if (!localStorage.getItem('flagrush_onboarded')) showOnboarding();
-  } catch(e) {}
 }
 
 function renderLeaderboard(elId, lb, highlightUser) {
@@ -2296,13 +2297,21 @@ function revealFlag() {
 }
 
 // ── ONBOARDING ──
-function showOnboarding() {
+let _onboardingCallback = null;
+
+function showOnboarding(callback) {
+  _onboardingCallback = callback || null;
   document.getElementById('onboarding-overlay').classList.add('is-open');
 }
 
 function dismissOnboarding() {
   document.getElementById('onboarding-overlay').classList.remove('is-open');
   try { localStorage.setItem('flagrush_onboarded', '1'); } catch(e) {}
+  if (_onboardingCallback) {
+    const cb = _onboardingCallback;
+    _onboardingCallback = null;
+    cb();
+  }
 }
 
 function confirmQuit() {
