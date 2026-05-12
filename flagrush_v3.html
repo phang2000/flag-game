@@ -1178,7 +1178,8 @@
   }
 
   @keyframes streakBreak {
-    0%   { color: var(--wrong); background-color: rgba(226,75,74,0.13); }
+    /* no 0% — interpolates from the pill's current colour */
+    30%  { color: var(--wrong); background-color: rgba(226,75,74,0.22); }
     100% { color: var(--text3); background-color: transparent; }
   }
   .streak-hud.streak-break {
@@ -1797,13 +1798,16 @@ function updateLiveScore() {
 
 let _lastStreakTier = 0; // 0=none, 1=1.2×, 2=1.5×, 3=2×
 
-function signalStreakBreak() {
+function signalStreakBreak(prevTier) {
   const el = document.getElementById('streak-hud');
   if (!el) return;
+  // Re-add the pill class so the animation fires on the existing pill shape/colour
+  if (prevTier >= 2) el.classList.add('hot');
+  else if (prevTier === 1) el.classList.add('active');
   el.classList.remove('streak-break');
   void el.offsetWidth;
   el.classList.add('streak-break');
-  setTimeout(() => el.classList.remove('streak-break'), 460);
+  setTimeout(() => el.classList.remove('streak-break', 'active', 'hot'), 460);
 }
 
 function updateStreakHUD() {
@@ -2373,9 +2377,10 @@ function submitAnswer() {
 
 function triggerWrong() {
   const hadStreak = currentStreak;
+  const prevTier = _lastStreakTier;
   currentStreak = 0;
   updateStreakHUD();
-  if (hadStreak > 0) signalStreakBreak();
+  if (hadStreak > 0) signalStreakBreak(prevTier);
 
   const input = document.getElementById('answer-input');
   input.classList.remove('shake');
@@ -2402,11 +2407,12 @@ function skipFlag() {
   const flag = shuffled[currentIndex];
   skippedCount++;
   const hadStreak = currentStreak;
+  const prevTier = _lastStreakTier;
   currentStreak = 0;
   splitTimes.push({ code: flag.code, name: flag.name, ms: null, skipped: true });
   missedFlags.push({ code: flag.code, name: flag.name, reason: 'skipped' });
   updateStreakHUD();
-  if (hadStreak > 0) signalStreakBreak();
+  if (hadStreak > 0) signalStreakBreak(prevTier);
   currentIndex++;
   showFlag();
 }
@@ -2419,9 +2425,10 @@ function revealFlag() {
   if (!wasClose) {
     revealedCount++;
     const hadStreak = currentStreak;
+    const prevTier = _lastStreakTier;
     currentStreak = 0;
     updateStreakHUD();
-    if (hadStreak > 0) signalStreakBreak();
+    if (hadStreak > 0) signalStreakBreak(prevTier);
   }
   const flag = shuffled[currentIndex];
   const fb = document.getElementById('feedback-label');
