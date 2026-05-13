@@ -1798,16 +1798,18 @@ function updateLiveScore() {
 
 let _lastStreakTier = 0; // 0=none, 1=1.2×, 2=1.5×, 3=2×
 
-function signalStreakBreak(prevTier) {
+function signalStreakBreak() {
   const el = document.getElementById('streak-hud');
   if (!el) return;
-  // Re-add the pill class so the animation fires on the existing pill shape/colour
-  if (prevTier >= 2) el.classList.add('hot');
-  else if (prevTier === 1) el.classList.add('active');
+  // Pill classes and text are still intact at call time — fire directly on them
   el.classList.remove('streak-break');
   void el.offsetWidth;
   el.classList.add('streak-break');
-  setTimeout(() => el.classList.remove('streak-break', 'active', 'hot'), 460);
+  // Clean up after animation and show correct empty state
+  setTimeout(() => {
+    el.classList.remove('streak-break');
+    updateStreakHUD();
+  }, 460);
 }
 
 function updateStreakHUD() {
@@ -2377,10 +2379,13 @@ function submitAnswer() {
 
 function triggerWrong() {
   const hadStreak = currentStreak;
-  const prevTier = _lastStreakTier;
   currentStreak = 0;
-  updateStreakHUD();
-  if (hadStreak > 0) signalStreakBreak(prevTier);
+  _lastStreakTier = 0;
+  if (hadStreak > 0) {
+    signalStreakBreak(); // fires on intact pill; calls updateStreakHUD() after animation
+  } else {
+    updateStreakHUD();
+  }
 
   const input = document.getElementById('answer-input');
   input.classList.remove('shake');
@@ -2407,12 +2412,15 @@ function skipFlag() {
   const flag = shuffled[currentIndex];
   skippedCount++;
   const hadStreak = currentStreak;
-  const prevTier = _lastStreakTier;
   currentStreak = 0;
+  _lastStreakTier = 0;
   splitTimes.push({ code: flag.code, name: flag.name, ms: null, skipped: true });
   missedFlags.push({ code: flag.code, name: flag.name, reason: 'skipped' });
-  updateStreakHUD();
-  if (hadStreak > 0) signalStreakBreak(prevTier);
+  if (hadStreak > 0) {
+    signalStreakBreak(); // fires on intact pill; calls updateStreakHUD() after animation
+  } else {
+    updateStreakHUD();
+  }
   currentIndex++;
   showFlag();
 }
@@ -2425,10 +2433,13 @@ function revealFlag() {
   if (!wasClose) {
     revealedCount++;
     const hadStreak = currentStreak;
-    const prevTier = _lastStreakTier;
     currentStreak = 0;
-    updateStreakHUD();
-    if (hadStreak > 0) signalStreakBreak(prevTier);
+    _lastStreakTier = 0;
+    if (hadStreak > 0) {
+      signalStreakBreak(); // fires on intact pill; calls updateStreakHUD() after animation
+    } else {
+      updateStreakHUD();
+    }
   }
   const flag = shuffled[currentIndex];
   const fb = document.getElementById('feedback-label');
