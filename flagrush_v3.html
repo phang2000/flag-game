@@ -3064,7 +3064,9 @@ async function generateShareCard() {
   ctx.fillText('Rush', 80 + logoOffset, 112);
 
   // Mode label (top right)
-  const modeLabel = _lastRunContinent || 'All Flags';
+  const modeLabel = _lastRunMode === 'daily'
+    ? '⭐ Daily · ' + formatDailyDate(_lastRunDailyDate)
+    : (_lastRunContinent || 'All Flags');
   ctx.font = '600 26px "Nunito", sans-serif';
   ctx.fillStyle = '#9C9890';
   ctx.textAlign = 'right';
