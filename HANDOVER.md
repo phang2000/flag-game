@@ -34,11 +34,18 @@ When the on-screen keyboard opens during a game, the score, flag count, and acti
 
 **Goal:** Everything critical must be visible with the keyboard open on common mobile viewports (iPhone SE, iPhone 14, mid-size Android).
 
-**Approach to consider:**
-- Compress the game topbar when keyboard is open (`visualViewport` resize event or CSS `dvh`/`svh` units)
-- Reduce flag image height when viewport shrinks — flag can be smaller, HUD must not be
-- Ensure `#answer-input` scrolls into view without pushing topbar off-screen
-- Test at 375px width (iPhone SE) as the minimum target
+**Key design decision:** Auto-focus `#answer-input` at the start of `startGame()` so the keyboard is already open when the first flag appears. Player never sees the layout shift, and no time is lost tapping the field. Timer starts; keyboard is already up. Single line fix: `document.getElementById('answer-input').focus()` — call it after the first flag renders.
+
+**`visualViewport` resize still needed** as a graceful recovery — players will dismiss/re-open the keyboard (autocorrect, distraction). But it's a fallback, not the primary experience.
+
+**Full implementation plan:**
+1. `startGame()` — call `answer-input.focus()` after `showFlag()` so keyboard opens immediately
+2. `syncGameHeight()` — hook `visualViewport.resize` + `scroll` events, write `--game-h` CSS var
+3. `#game { height: var(--game-h, 100dvh); overflow: hidden; }` — container tracks real visible height
+4. `#flag-img-wrap` — set `flex: 1; min-height: 80px; max-height: 240px` — flag is the sacrificial flex element, everything else is fixed height
+5. `#game { transition: height 0.15s ease; }` — smooth resize when keyboard dismissed/re-opened
+6. Clean up `visualViewport` listener in `showScreen()` when leaving `#game` (Sam's note)
+7. Test viewports: 375×667 (iPhone SE), 390×844 (iPhone 14), 360px wide (Android mid)
 
 ### 2. Dark mode toggle placement — home screen & mode-select
 - Too much dead space between the dark mode toggle (top-right) and the "FlagRush" h1
