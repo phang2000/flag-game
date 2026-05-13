@@ -2773,7 +2773,7 @@ function confirmQuit() {
   const sub = document.querySelector('#quit-dialog .quit-dialog-sub');
   if (sub) {
     sub.textContent = currentMode === 'daily'
-      ? "Quitting uses today's Daily attempt. You can't replay until tomorrow."
+      ? "Heads up — quitting ends today's Daily run. Your progress so far will be saved."
       : 'Your progress will be lost.';
   }
   document.getElementById('quit-dialog').classList.add('is-open');
