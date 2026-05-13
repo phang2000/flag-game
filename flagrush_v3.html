@@ -2970,12 +2970,12 @@ function endGame() {
   } else {
     runsEl.innerHTML = recentRuns.slice(0, 8).map(r => {
       const total = r.total || 193;
-      const cTag = r.continent ? ' · ' + r.continent : '';
+      const modeTag = r.mode === 'daily' ? '⭐ Daily · ' : (r.continent ? r.continent + ' · ' : '');
       const scoreStr = r.score ? ' · ' + r.score.toLocaleString() + ' pts' : '';
       const starsStr = r.stars ? ' ' + '★'.repeat(r.stars) : '';
       return '<div class="run-row">' +
         '<span class="run-date">' + r.date + '</span>' +
-        '<span class="run-flags">' + r.correct + '/' + total + scoreStr + starsStr + cTag + '</span>' +
+        '<span class="run-flags">' + modeTag + r.correct + '/' + total + scoreStr + starsStr + '</span>' +
         '<span class="run-time">' + formatTimeMs(r.timeMs) + '</span>' +
         '</div>';
     }).join('');
