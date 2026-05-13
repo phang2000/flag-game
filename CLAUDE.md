@@ -18,7 +18,7 @@ Flag Rush is a single-page flag identification game with ambitions to become the
 - **Two play modes:** All flags (193) or by continent (Africa, Americas, Asia, Europe, Oceania)
 - **Persistence:** localStorage for leaderboard, recent runs, region bests, missed flags, username
 - **Theming:** Light/dark toggle, CSS custom properties throughout
-- **Deployed:** Vercel via GitHub push to `main`. Latest commit: `660eb47`
+- **Deployed:** Vercel via GitHub push to `main`. Latest commit: `651e0bf` (11 commits ahead of origin — not yet pushed)
 - **Demo file:** `demo_animations.html` — standalone animation sandbox in same folder, safe to delete
 
 ---
@@ -426,8 +426,8 @@ Reads `currentStreak` to pick tier class. `type` is `'perfect'` or `'close'`.
 ### `updateStreakHUD()`
 Updates HUD text + class. Fires `tier-up` shimmer when `_lastStreakTier` increases. Updates `_lastStreakTier`. ⚠️ Call sites that need prev tier must capture `_lastStreakTier` BEFORE calling this.
 
-### `signalStreakBreak(prevTier)`
-Re-adds `active` (tier 1) or `hot` (tier 2-3) class to HUD, then adds `streak-break` for red flash + shake. Cleans up after 460ms. Call AFTER `updateStreakHUD()`, pass captured `prevTier`.
+### `signalStreakBreak()`
+**No parameter.** Fires the red flash + shake animation **directly on the intact pill** — call this BEFORE `updateStreakHUD()` clears the classes/text. Internally defers `updateStreakHUD()` to run after the 460ms animation completes, so the pill text fades with the background (not after). Call sites: set `currentStreak = 0` and `_lastStreakTier = 0` first, then call `signalStreakBreak()` if `hadStreak > 0` (it handles the `updateStreakHUD()` call); otherwise call `updateStreakHUD()` directly. ⚠️ Do NOT call `updateStreakHUD()` separately if you already called `signalStreakBreak()` — it will double-fire.
 
 ### `revealFlag()`
 Sets `awaitingAdvance = true` and starts `revealAutoTimer` (1200ms). Timer auto-advances on expiry. Enter also advances (clears timer via `submitAnswer` awaitingAdvance branch). `skipFlag()` and `startGame()` both clear `revealAutoTimer`.
@@ -512,12 +512,44 @@ Dark mode overrides all tokens via `[data-theme="dark"]`.
 
 ## Next Session — Recommended Starting Point
 
-1. **Push to Vercel** if not already done: `git push origin main` (latest local commit: `660eb47`)
-2. **Daily Challenge** — highest priority feature (Jordan + Priya consensus). Client-side only for v1: date-seeded shuffle (`new Date().toDateString()` as seed), localStorage gate (`flagrush_daily_{date}` key), one attempt per day, results shown on home screen. No backend needed.
-3. **Score pop audit** — verify `score-pop-tier-2x` glow looks right in light mode (was designed/tested in dark mode)
-4. **`demo_animations.html`** — can be deleted, choices are locked in (Pop B, HUD C)
+1. **Push to Vercel** — `git push origin main`. Currently 11 commits ahead of origin (latest: `651e0bf`).
+2. **Daily Challenge** — highest priority feature (Jordan + Priya consensus). Client-side only for v1: date-seeded shuffle (`new Date().toDateString()` as seed), localStorage gate key `flagrush_daily_{date}`, one attempt per day, results shown on home screen. No backend needed.
+3. **Score pop glow audit** — verify `score-pop-tier-2x` glow renders correctly in light mode. It was designed and tested in dark mode.
+4. **Delete `demo_animations.html`** — choices are locked in (score pop Option B: size+glow; streak HUD Option C: pill+shimmer). File is no longer needed.
+5. **Share card visual polish** — the v1 card is functional (Canvas 1200×630, Download + native share sheet). Layout and data are correct but the visual design is rough. Needs typography hierarchy, colour treatment, and brand presence improvement before wider launch.
 
 ---
 
-*Last updated: May 2026 — session covering animation polish, Marcus playtest, feedback loop tightening*
+## Streak-Break Animation — Implementation Notes (May 2026)
+
+The final implementation resolved a sequencing issue where `updateStreakHUD()` was stripping pill classes before the animation could fire.
+
+**Architecture (current):**
+1. Call site captures `hadStreak = currentStreak`
+2. Sets `currentStreak = 0` and `_lastStreakTier = 0`
+3. If `hadStreak > 0`: calls `signalStreakBreak()` only — it owns the full lifecycle
+4. If `hadStreak === 0`: calls `updateStreakHUD()` directly
+
+**Inside `signalStreakBreak()`:**
+- Fires `streak-break` CSS class immediately on the intact pill (classes + text still present)
+- Defers `updateStreakHUD()` to a 460ms `setTimeout` — this clears the DOM after animation ends
+- `@keyframes streakBreak` fades `color` to `transparent` so text disappears with the pill background simultaneously (not after a DOM update delay)
+
+**CSS keyframes:**
+```css
+@keyframes streakBreak {
+  /* no 0% — interpolates from pill's current colour */
+  30%  { color: var(--wrong); background-color: rgba(226,75,74,0.22); }
+  100% { color: transparent; background-color: transparent; }
+}
+.streak-hud.streak-break {
+  animation: streakBreak 0.45s ease forwards, shake 0.35s ease;
+}
+```
+
+**Callers:** `triggerWrong()`, `skipFlag()`, `revealFlag()` (!wasClose branch). All follow the same pattern.
+
+---
+
+*Last updated: May 2026 — session covering animation polish, share card implementation, Marcus playtest, streak-break fix iterations*
 *Continue development in Claude Code. Paste this file at session start for full context.*
