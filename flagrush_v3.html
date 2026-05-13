@@ -2846,7 +2846,7 @@ function endGame() {
 
   let isNewBest = false;
   let isNewScoreBest = false;
-  if (!currentContinent) {
+  if (!currentContinent && currentMode !== 'daily') {
     const lb = getLeaderboard();
     const existingIdx = lb.findIndex(e => e.name === currentUser);
     if (existingIdx >= 0) {
