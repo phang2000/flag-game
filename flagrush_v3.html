@@ -1871,7 +1871,7 @@ function calcFlagScore(type) {
 }
 
 function calcSpeedBonus(totalMs, flagCount) {
-  const MAX_BONUS = 5000;
+  const MAX_BONUS = Math.round(5000 * (flagCount / 193));
   const ASYMPTOTE = 0.92;
   const FLOOR_S = 60;
   const cutoffS = Math.max(60, flagCount * 9.33);
