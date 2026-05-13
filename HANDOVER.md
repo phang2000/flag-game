@@ -63,3 +63,24 @@ When the on-screen keyboard opens during a game, the score, flag count, and acti
 | Pace indicator during run (Marcus) | Deferred | "Am I ahead of my PB right now?" mid-run pressure hook. Phase 3. |
 | Continent mode entry point | Deferred | Tied to home screen redesign. |
 | Territories mode dataset | Not started | Architecture decided (see CLAUDE.md). Need to build the flag list. |
+
+---
+
+## Food for Thought (logged May 2026 — discuss next session)
+
+### 1. Accepted name review — abbreviations & shortened names
+Currently some flags accept informal names via the `alt[]` array (e.g. "NZ" for New Zealand, "PNG" for Papua New Guinea, "Macedonia" for North Macedonia, "Congo" for DRC/Republic of Congo). Need a full audit and a consistent policy:
+- Should abbreviations (NZ, PNG, UAE, USA, UK) be accepted? They're fast to type but may undermine the spelling challenge.
+- Ambiguous shortened names (Congo = DRC or Republic of Congo?) need a decision — accept both for one, neither, or require disambiguation.
+- Invoke panel for this: Sam (edge cases), Jordan (does accepting shortcuts cheapen the skill?), Marcus (competitive feel).
+
+### 2. Mode expansion
+- **Split Americas into North America + South America** — current "Americas" pool mixes both. Splitting gives more granular continent runs and cleaner leaderboards. Check flag counts: ~23 North, ~12 South roughly.
+- **Territories mode** — architecture already decided in CLAUDE.md. Build the flag dataset (Puerto Rico, Greenland, HK, Macau, Gibraltar, Faroe Islands, Bermuda, Guam, New Caledonia, French Polynesia, Aruba, Curaçao, Cayman Islands, Cook Islands etc.). Separate leaderboard per mode.
+- Both changes touch mode-select UI, leaderboard keys, and `startGame()` routing — plan carefully before implementing.
+
+### 3. Results screen — % complete stat & animated stat cards
+- **% complete** — show what % of the total pool the player answered correctly (e.g. "You named 87% of all flags"). More intuitive than raw correct/total for casual players.
+- **Animated stat cards** — currently stats appear statically. Consider counting-up animations on the numbers (score, streak, correct count) as they reveal on results screen. Adds a reward moment.
+- Could also explore a "personal progress" arc — showing this run vs. your personal best visually rather than just numbers.
+- Discuss with Aisha (casual feel) + Marcus (competitive satisfaction) before building.
