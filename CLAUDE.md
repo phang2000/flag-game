@@ -13,13 +13,28 @@ Flag Rush is a single-page flag identification game with ambitions to become the
 
 ## Current State
 
-- **Source file:** `flagrush_v3.html` — single self-contained HTML/CSS/JS file, ~2,250 lines
+- **Source file:** `flagrush_v3.html` — single self-contained HTML/CSS/JS file, ~3,120 lines
 - **193 flags** covering all sovereign nations, grouped by continent
-- **Two play modes:** All flags (193) or by continent (Africa, Americas, Asia, Europe, Oceania)
-- **Persistence:** localStorage for leaderboard, recent runs, region bests, missed flags, username
+- **Three play modes:** All flags (193), by continent, or Daily Challenge (seeded, one attempt per day)
+- **Persistence:** localStorage for leaderboard, recent runs, region bests, missed flags, username, daily entries
 - **Theming:** Light/dark toggle, CSS custom properties throughout
-- **Deployed:** Vercel via GitHub push to `main`. Latest commit: `651e0bf` (11 commits ahead of origin — not yet pushed)
+- **Deployed:** Vercel via GitHub push to `main`. Latest commit: `a7f58c4`
 - **Demo file:** `demo_animations.html` — standalone animation sandbox in same folder, safe to delete
+
+---
+
+## Per-Fix Verification Workflow
+
+Apply this workflow to **every code change** before committing:
+
+1. **Edit** with `Edit` tool (one logical change per commit).
+2. **Sync worktree** — `cp flagrush_v3.html .claude/worktrees/<name>/flagrush_v3.html` so the preview server picks up the change.
+3. **Reload** — `preview_eval: window.location.reload()`.
+4. **Drive the screen** — use `preview_click` / `preview_fill` / `preview_eval` to reach the relevant state.
+5. **Screenshot** — `preview_screenshot`. Re-screenshot in dark mode for visual changes.
+6. **Console check** — `preview_console_logs level:error`. Zero errors required.
+7. **Commit** — `git add flagrush_v3.html && git commit -m "..."` (one fix per commit, Co-Authored-By footer).
+8. **Smoke-test previous fix** — quick screenshot to confirm no regression.
 
 ---
 
@@ -30,7 +45,7 @@ Flag Rush is a single-page flag identification game with ambitions to become the
 |--------|--------|
 | Perfect spelling, first attempt | 100 pts |
 | Close spelling (within threshold) | 60 pts |
-| Used reveal, then typed correctly | 20 pts |
+| Used reveal | 0 pts |
 | Skipped | 0 pts |
 
 ### Streak multiplier
@@ -50,11 +65,9 @@ Asymptotic cubic curve — approaches but **mathematically never reaches** the m
 
 > ⚠️ **Under review:** Peter has flagged that he wants the bonus to be truly uncapped (approaching infinity as time → 0, not approaching a fixed MAX). This would change the score ceiling from ~42,500 to mathematically infinite, which is more pure as a speedrunning hook but requires recalibrating star thresholds and benchmark scores. **Do not implement without a dedicated design session.**
 
-> ⚠️ **Design gap:** `MAX_BONUS` is fixed at 5,000 regardless of pool size. This makes the speed bonus disproportionately large for small modes — in Oceania (14 flags), the bonus can be 165% of max possible flag score vs ~12% in all-193 mode. `MAX_BONUS` should scale with `flagCount / 193` (same formula used for star ratings). Pending fix.
-
 ```js
 function calcSpeedBonus(totalMs, flagCount) {
-  const MAX_BONUS = 5000;
+  const MAX_BONUS = Math.round(5000 * (flagCount / 193)); // scales with pool size
   const ASYMPTOTE = 0.92;         // never reaches 100% of max
   const FLOOR_S = 60;             // minimum meaningful time
   const cutoffS = Math.max(60, flagCount * 9.33); // ~30min for all 193
@@ -255,7 +268,7 @@ Fixed height (`1.6rem`) — never shifts layout regardless of content. Pill back
 - [x] Leaderboard now ranks by score descending
 - [ ] Leaderboard currently local-only — no cross-device or cross-player visibility
 - [x] **Skip exploit fixed.** Speed bonus multiplied by `correctCount / shuffled.length` — skipping everything = 0 bonus, all answered = full bonus. Note: `correctCount` already includes both perfect AND close answers (both increment it), so `closeCount` is NOT added again here.
-- [ ] **Speed bonus MAX not scaling with mode** — `MAX_BONUS` is fixed at 5,000 across all pool sizes. Oceania (14 flags) speed bonus can dwarf the flag score entirely. Fix: scale `MAX_BONUS` by `flagCount / 193` (same formula as star rating thresholds). Pending design confirmation before implementing.
+- [x] **Speed bonus MAX now scales with mode** — `MAX_BONUS = Math.round(5000 * flagCount / 193)`. Oceania (14 flags) caps at ~363 pts. Commit `7addb4a`.
 - [ ] **Uncapped speed bonus** — Peter wants the bonus to approach infinity as time approaches zero, not a fixed cap. Needs dedicated design session: new formula, recalibrated star thresholds, new benchmark scores. Do not implement without discussion.
 
 ---
@@ -512,11 +525,11 @@ Dark mode overrides all tokens via `[data-theme="dark"]`.
 
 ## Next Session — Recommended Starting Point
 
-1. **Push to Vercel** — `git push origin main`. Currently 11 commits ahead of origin (latest: `651e0bf`).
-2. **Daily Challenge** — highest priority feature (Jordan + Priya consensus). Client-side only for v1: date-seeded shuffle (`new Date().toDateString()` as seed), localStorage gate key `flagrush_daily_{date}`, one attempt per day, results shown on home screen. No backend needed.
-3. **Score pop glow audit** — verify `score-pop-tier-2x` glow renders correctly in light mode. It was designed and tested in dark mode.
-4. **Delete `demo_animations.html`** — choices are locked in (score pop Option B: size+glow; streak HUD Option C: pill+shimmer). File is no longer needed.
-5. **Share card visual polish** — the v1 card is functional (Canvas 1200×630, Download + native share sheet). Layout and data are correct but the visual design is rough. Needs typography hierarchy, colour treatment, and brand presence improvement before wider launch.
+1. **Practice Mode** — highest priority Phase 3 feature (Priya + Jordan consensus). Data already collected in `flagrush_missed` localStorage. Build a drill screen that replays the player's accumulated missed flags. No new data infrastructure needed.
+2. **Share card visual polish** — v1 card is functional (Canvas 1200×630, Download + native share). Data is now correct (daily date appears). Visual design needs typography hierarchy, colour/gradient treatment, stronger brand presence. Mock up before coding.
+3. **Home screen redesign** — not launch-quality. Treat as a design project (mockup first). Do not ship to a wider audience with the current home screen.
+4. **Delete `demo_animations.html`** — animation choices are locked in. File is no longer needed.
+5. **`git push origin main`** after any session to keep Vercel in sync.
 
 ---
 
@@ -551,5 +564,23 @@ The final implementation resolved a sequencing issue where `updateStreakHUD()` w
 
 ---
 
-*Last updated: May 2026 — session covering animation polish, share card implementation, Marcus playtest, streak-break fix iterations*
+---
+
+## Bugs Fixed (Phase 2 — Post-Daily panel audit, May 2026)
+
+| Bug / Polish | Fix | Commit |
+|---|---|---|
+| `executeQuit()` routed to mode-select | Changed to `showScreen('home')` so locked daily tile is immediately visible | `1801833` |
+| Quit-daily saved `score: 0` | Now saves `currentScore` (partial flag score, no speed bonus) + correct stars | `cf30f8b` |
+| Daily quit dialog copy was punitive | Softened to "Heads up — quitting ends today's Daily run. Your progress so far will be saved." | `b00bbf6` |
+| `MAX_BONUS` fixed at 5000 for all modes | Now `Math.round(5000 * flagCount / 193)` — Oceania caps at ~363 | `7addb4a` |
+| Daily runs polluted all-flags leaderboard | `endGame()` skips leaderboard push when `currentMode === 'daily'` | `2826ff3` |
+| Recent runs list had no daily indicator | Daily rows now prefixed `⭐ Daily ·`; continent runs prefixed with continent name | `69f7557` |
+| Share card didn't show daily context | Mode label in canvas now renders `⭐ Daily · Wed, 13 May` for daily runs | `510efc5` |
+| `score-pop-tier-2x` glow invisible in light mode | Increased opacity + radius; added white backing shadow for contrast independence | `a7f58c4` |
+| Reveal scoring spec mismatch | Spec updated: reveals = 0 pts (matches code). No "type after reveal for 20 pts" path exists. | — |
+
+---
+
+*Last updated: May 2026 — Daily Challenge v1 shipped; Phase 2 panel audit bug-fix sprint complete*
 *Continue development in Claude Code. Paste this file at session start for full context.*
