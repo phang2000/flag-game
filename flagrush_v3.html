@@ -2788,12 +2788,14 @@ function executeQuit() {
   document.getElementById('quit-dialog').classList.remove('is-open');
   clearInterval(timerInterval);
 
-  // Daily: quitting consumes today's attempt (zero-score entry) so it can't be re-rolled.
+  // Daily: quitting consumes today's attempt so it can't be re-rolled.
+  // Save the actual partial score (no speed bonus — they didn't finish).
   if (currentMode === 'daily' && currentDailySeed && !getDailyEntry(currentDailySeed)) {
+    const quitStars = getStarRating(currentScore, shuffled.length);
     saveDailyEntry(currentDailySeed, {
-      score: 0,
+      score: currentScore,
       timeMs: elapsedMs,
-      stars: 0,
+      stars: quitStars,
       correctCount,
       perfectCount,
       closeCount,
