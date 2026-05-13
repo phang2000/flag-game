@@ -129,6 +129,111 @@
     margin-bottom: 1rem;
   }
 
+  .daily-tile {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #4A3FBF);
+    color: white;
+    border-radius: var(--radius);
+    padding: 1.4rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    font-family: 'Nunito', sans-serif;
+  }
+  .daily-tile:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(91,79,207,0.35); }
+  .daily-tile:active { transform: translateY(0); }
+  .daily-tile.is-locked { cursor: default; background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .daily-tile.is-locked:hover { transform: none; box-shadow: var(--shadow); }
+
+  .daily-tile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+  }
+  .daily-tile-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+  }
+  .daily-tile.is-locked .daily-tile-eyebrow { color: var(--text3); opacity: 1; }
+  .daily-tile-date {
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.85;
+  }
+  .daily-tile.is-locked .daily-tile-date { color: var(--text3); }
+  .daily-tile-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 0.25rem;
+  }
+  .daily-tile-sub {
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0.9;
+    margin-bottom: 0.85rem;
+  }
+  .daily-tile.is-locked .daily-tile-sub { color: var(--text2); opacity: 1; }
+  .daily-tile-cta {
+    display: inline-block;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    padding: 0.5rem 0.95rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+  .daily-result {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+  .daily-result-score {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .daily-result-stars {
+    font-size: 1rem;
+    color: var(--close);
+    letter-spacing: 0.05em;
+  }
+  .daily-result-meta {
+    font-size: 0.82rem;
+    color: var(--text2);
+  }
+  .daily-countdown {
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-variant-numeric: tabular-nums;
+  }
+  .daily-countdown b { color: var(--text2); font-weight: 700; }
+
+  .daily-pill {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    margin-bottom: 0.6rem;
+  }
+
   .home-stats {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -1264,6 +1369,8 @@
     <div class="logo">Flag<span>Rush</span></div>
     <div class="tagline">How fast can you name every UN flag?</div>
 
+    <div id="daily-tile" class="daily-tile" onclick="onDailyTileClick()"></div>
+
     <div class="home-card">
       <div class="home-stats">
         <div class="stat-pill">
@@ -1371,6 +1478,7 @@
 <!-- ── RESULTS ── -->
 <div id="results" class="screen">
   <div class="results-header">
+    <div id="results-daily-pill" class="daily-pill" style="display:none;">⭐ Daily Challenge</div>
     <div class="results-title" id="results-title">Run complete!</div>
     <div class="results-subtitle" id="results-subtitle"></div>
   </div>
@@ -1706,11 +1814,16 @@ let feedbackTimeout = null;
 let inputLocked = false;
 let awaitingAdvance = false;
 let currentContinent = null;
+let currentMode = 'normal'; // 'normal' | 'daily'
+let currentDailySeed = null; // YYYY-MM-DD when mode is daily, else null
 
 // ── LAST RUN (for share card) ──
 let _lastRunScore = 0, _lastRunMs = 0, _lastRunStars = 0, _lastRunStreak = 0;
 let revealAutoTimer = null;
 let _lastRunCorrect = 0, _lastRunTotal = 0, _lastRunContinent = null;
+let _lastRunMode = 'normal';
+let _lastRunDailyDate = null;
+let dailyCountdownInterval = null;
 
 // ── SCORING STATE ──
 let currentScore = 0;
@@ -1902,6 +2015,73 @@ function shuffle(arr) {
   return a;
 }
 
+// Deterministic PRNG — same seed always produces the same sequence.
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function() {
+    t = (t + 0x6D2B79F5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function hashString(s) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function shuffleSeeded(arr, seedStr) {
+  const rand = mulberry32(hashString(seedStr));
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function todayDateStr() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return yyyy + '-' + mm + '-' + dd;
+}
+
+function dailyKey(dateStr) { return 'flagrush_daily_' + dateStr; }
+function getDailyEntry(dateStr) {
+  try { return JSON.parse(localStorage.getItem(dailyKey(dateStr)) || 'null'); }
+  catch { return null; }
+}
+function saveDailyEntry(dateStr, entry) {
+  try { localStorage.setItem(dailyKey(dateStr), JSON.stringify(entry)); } catch {}
+}
+
+function formatDailyDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function msUntilNextLocalMidnight() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return next.getTime() - now.getTime();
+}
+
+function formatCountdown(ms) {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
 function formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
   const min = Math.floor(totalSec / 60);
@@ -2044,6 +2224,9 @@ function showScreen(id) {
   // Hide theme toggle during gameplay so it doesn't overlap the timer on mobile
   const toggle = document.getElementById('theme-toggle');
   if (toggle) toggle.style.display = id === 'game' ? 'none' : '';
+  // Only the home screen needs the daily countdown ticking
+  if (id !== 'home') stopDailyCountdown();
+  else renderDailyTile();
 }
 
 // ── MODE SELECT ──
@@ -2100,6 +2283,90 @@ function initHome() {
   }
 
   renderLeaderboard('home-leaderboard', lb, null);
+  renderDailyTile();
+}
+
+function renderDailyTile() {
+  const tile = document.getElementById('daily-tile');
+  if (!tile) return;
+  const dateStr = todayDateStr();
+  const entry = getDailyEntry(dateStr);
+  const dateLabel = formatDailyDate(dateStr);
+
+  if (!entry) {
+    tile.classList.remove('is-locked');
+    tile.innerHTML =
+      '<div class="daily-tile-head">' +
+        '<span class="daily-tile-eyebrow">⭐ Daily Challenge</span>' +
+        '<span class="daily-tile-date">' + dateLabel + '</span>' +
+      '</div>' +
+      '<div class="daily-tile-title">Today\'s 193 flags</div>' +
+      '<div class="daily-tile-sub">One run. Same flag order for everyone. New tomorrow.</div>' +
+      '<span class="daily-tile-cta">Play today\'s run →</span>';
+    stopDailyCountdown();
+  } else {
+    tile.classList.add('is-locked');
+    const starsStr = entry.stars ? '★'.repeat(entry.stars) + '☆'.repeat(5 - entry.stars) : '☆☆☆☆☆';
+    const quitTag = entry.quit ? ' <span style="color:var(--wrong)">· quit</span>' : '';
+    tile.innerHTML =
+      '<div class="daily-tile-head">' +
+        '<span class="daily-tile-eyebrow">⭐ Daily Challenge — done</span>' +
+        '<span class="daily-tile-date">' + dateLabel + '</span>' +
+      '</div>' +
+      '<div class="daily-result">' +
+        '<span class="daily-result-score">' + (entry.score || 0).toLocaleString() + ' pts</span>' +
+        '<span class="daily-result-stars">' + starsStr + '</span>' +
+      '</div>' +
+      '<div class="daily-result-meta">' + formatTimeMs(entry.timeMs || 0) + ' · ' + (entry.correctCount || 0) + ' / 193 answered' + quitTag + '</div>' +
+      '<div class="daily-countdown" id="daily-countdown">Next challenge in <b>' + formatCountdown(msUntilNextLocalMidnight()) + '</b></div>';
+    startDailyCountdown();
+  }
+}
+
+function startDailyCountdown() {
+  stopDailyCountdown();
+  dailyCountdownInterval = setInterval(() => {
+    const el = document.getElementById('daily-countdown');
+    if (!el) { stopDailyCountdown(); return; }
+    const ms = msUntilNextLocalMidnight();
+    if (ms <= 0) {
+      // day rolled over — re-render
+      renderDailyTile();
+      return;
+    }
+    el.innerHTML = 'Next challenge in <b>' + formatCountdown(ms) + '</b>';
+  }, 1000);
+}
+
+function stopDailyCountdown() {
+  if (dailyCountdownInterval) {
+    clearInterval(dailyCountdownInterval);
+    dailyCountdownInterval = null;
+  }
+}
+
+function onDailyTileClick() {
+  const dateStr = todayDateStr();
+  if (getDailyEntry(dateStr)) return; // already played today
+
+  const nameInput = document.getElementById('username-input');
+  if (!nameInput.value.trim()) {
+    const nudge = document.getElementById('username-nudge');
+    nudge.style.opacity = '1';
+    setTimeout(() => { nudge.style.opacity = '0'; }, 2000);
+    nameInput.focus();
+    return;
+  }
+
+  // Run through onboarding gate the same way openModeSelect does.
+  try {
+    if (!localStorage.getItem('flagrush_onboarded')) {
+      showOnboarding(() => onDailyTileClick());
+      return;
+    }
+  } catch(e) {}
+
+  startGame(null, { mode: 'daily', seed: dateStr });
 }
 
 function renderLeaderboard(elId, lb, highlightUser) {
@@ -2128,17 +2395,23 @@ function renderLeaderboard(elId, lb, highlightUser) {
 }
 
 // ── GAME ──
-function startGame(continent) {
+function startGame(continent, opts) {
   clearInterval(timerInterval); // defensive clear — prevents stale interval if re-entering mid-game via back-navigation
+  stopDailyCountdown();
+
+  opts = opts || {};
+  currentMode = opts.mode === 'daily' ? 'daily' : 'normal';
+  currentDailySeed = currentMode === 'daily' ? (opts.seed || todayDateStr()) : null;
 
   const nameInput = document.getElementById('username-input');
   currentUser = (nameInput.value || 'Anonymous').trim().slice(0, 20);
   saveUsername(currentUser);
 
-  currentContinent = continent || null;
+  // Daily mode always uses the full 193-flag pool regardless of any continent arg
+  currentContinent = currentMode === 'daily' ? null : (continent || null);
   const flagSet = currentContinent ? FLAGS.filter(f => f.continent === currentContinent) : FLAGS;
 
-  shuffled = shuffle(flagSet);
+  shuffled = currentMode === 'daily' ? shuffleSeeded(flagSet, currentDailySeed) : shuffle(flagSet);
   currentIndex = 0;
   correctCount = 0;
   skippedCount = 0;
@@ -2162,7 +2435,10 @@ function startGame(continent) {
 
   // Show/hide mode label
   const modeLabel = document.getElementById('game-mode-label');
-  if (currentContinent) {
+  if (currentMode === 'daily') {
+    modeLabel.textContent = '⭐ Daily Challenge';
+    modeLabel.style.display = 'block';
+  } else if (currentContinent) {
     const c = CONTINENTS.find(x => x.id === currentContinent);
     modeLabel.textContent = (c ? c.emoji + ' ' : '') + currentContinent;
     modeLabel.style.display = 'block';
@@ -2494,6 +2770,12 @@ function dismissOnboarding() {
 
 function confirmQuit() {
   clearInterval(timerInterval); // pause timer while dialog is open
+  const sub = document.querySelector('#quit-dialog .quit-dialog-sub');
+  if (sub) {
+    sub.textContent = currentMode === 'daily'
+      ? "Quitting uses today's Daily attempt. You can't replay until tomorrow."
+      : 'Your progress will be lost.';
+  }
   document.getElementById('quit-dialog').classList.add('is-open');
 }
 
@@ -2505,6 +2787,28 @@ function closeQuitDialog() {
 function executeQuit() {
   document.getElementById('quit-dialog').classList.remove('is-open');
   clearInterval(timerInterval);
+
+  // Daily: quitting consumes today's attempt (zero-score entry) so it can't be re-rolled.
+  if (currentMode === 'daily' && currentDailySeed && !getDailyEntry(currentDailySeed)) {
+    saveDailyEntry(currentDailySeed, {
+      score: 0,
+      timeMs: elapsedMs,
+      stars: 0,
+      correctCount,
+      perfectCount,
+      closeCount,
+      revealedCount,
+      skippedCount,
+      bestStreak,
+      quit: true,
+      completedAt: Date.now()
+    });
+  }
+
+  // Reset mode so subsequent normal runs aren't tagged daily.
+  currentMode = 'normal';
+  currentDailySeed = null;
+
   renderModeSelect();
   showScreen('mode-select');
 }
@@ -2533,6 +2837,8 @@ function endGame() {
   _lastRunCorrect = correctCount; // correctCount = perfect + close (close increments both)
   _lastRunTotal = shuffled.length;
   _lastRunContinent = currentContinent;
+  _lastRunMode = currentMode;
+  _lastRunDailyDate = currentDailySeed;
 
   const regionKey = currentContinent || 'all';
   const isRegionNewBest = updateRegionBest(regionKey, totalMs);
@@ -2575,9 +2881,27 @@ function endGame() {
     score: finalScore,
     stars,
     continent: currentContinent || null,
+    mode: currentMode,
+    dailyDate: currentDailySeed,
     date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
   });
   saveRecentRuns(runs.slice(0, 20));
+
+  // Daily Challenge — record today's attempt. Guard so a second tab can't overwrite.
+  if (currentMode === 'daily' && currentDailySeed && !getDailyEntry(currentDailySeed)) {
+    saveDailyEntry(currentDailySeed, {
+      score: finalScore,
+      timeMs: totalMs,
+      stars,
+      correctCount,
+      perfectCount,
+      closeCount,
+      revealedCount,
+      skippedCount,
+      bestStreak,
+      completedAt: Date.now()
+    });
+  }
 
   try {
     const prev = JSON.parse(localStorage.getItem('flagrush_missed') || '[]');
@@ -2589,6 +2913,15 @@ function endGame() {
   } catch {}
 
   const bestTag = isNewScoreBest ? ' 🎉 New best score!' : isNewBest ? ' 🎉 New best time!' : '';
+  const dailyPill = document.getElementById('results-daily-pill');
+  if (dailyPill) {
+    if (currentMode === 'daily' && currentDailySeed) {
+      dailyPill.textContent = '⭐ Daily Challenge — ' + formatDailyDate(currentDailySeed);
+      dailyPill.style.display = 'inline-block';
+    } else {
+      dailyPill.style.display = 'none';
+    }
+  }
   document.getElementById('results-title').textContent = 'Run complete, ' + currentUser + '!';
   document.getElementById('results-subtitle').innerHTML = renderStars(stars) + (bestTag ? '<span class="badge-new-best">' + bestTag.trim() + '</span>' : '');
 
